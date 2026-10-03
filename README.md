@@ -1,2 +1,1 @@
-# Handora
 # fare-frontend
