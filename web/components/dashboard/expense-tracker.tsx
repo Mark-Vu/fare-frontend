@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { IconLoader2 } from "@tabler/icons-react"
 import { actOnExpenses, ExpenseError, getExpenses, type ExpenseAction, type ExpenseMember, type ExpenseRequest, type LedgerView } from "@/lib/api/expenses"
 import { Bone } from "@/components/ui/skeleton"
 
@@ -172,7 +173,7 @@ export function ExpenseTracker({ groupId, sessionId }: { groupId: string; sessio
           <label className="text-xs">Amount (CAD)<input required type="text" inputMode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" maxLength={10} value={draft.amount} disabled={locked} onChange={e => changeDraft({ ...draft, amount: e.target.value })} placeholder="45.50" className={field} /></label>
         </div>
         <fieldset disabled={locked}><legend className="text-xs">Split equally between</legend><div className="mt-2 flex flex-wrap gap-4">{members.map(member => <label key={member.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.members.includes(member.id)} onChange={e => changeDraft({ ...draft, members: e.target.checked ? [...draft.members, member.id] : draft.members.filter(id => id !== member.id) })} />{memberLabel(member)}</label>)}</div></fieldset>
-        <button disabled={locked || !validActor || !validAmount(draft.amount.trim()) || !draft.members.length || !members.some(member => member.id === draft.payer) || !draft.description.trim()} className="rounded-full bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">{busy ? "Saving…" : "Add expense"}</button>
+        <button type="submit" disabled={locked || !validActor || !validAmount(draft.amount.trim()) || !draft.members.length || !members.some(member => member.id === draft.payer) || !draft.description.trim()} aria-busy={busy} aria-label={busy ? "Adding expense" : undefined} className="inline-flex h-9 min-w-32 items-center justify-center rounded-full bg-primary px-4 text-sm text-primary-foreground disabled:opacity-50">{busy ? <IconLoader2 aria-hidden="true" className="size-4 motion-safe:animate-spin" /> : "Add expense"}</button>
       </form>}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div><h3 className="font-medium">Expenses</h3><ul className="mt-3 space-y-3">{ledger.expenses.filter(expense => !expense.deleted).sort((a, b) => b.created_at.localeCompare(a.created_at)).map(expense => <li key={expense.id} className="rounded-xl border border-border p-4">
