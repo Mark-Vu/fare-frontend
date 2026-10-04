@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { getSessionSnapshot } from "@/lib/api/sessions"
 import { subscribeGroupSocket } from "@/lib/api/group-socket"
+import { mergeSessionSnapshot } from "@/lib/session-snapshot"
 import type { SessionSnapshot } from "@/types/dashboard"
 import { SessionDashboard } from "./session-dashboard"
 
@@ -15,7 +16,7 @@ export function SessionLoader({ groupId, sessionId }: { groupId: string; session
     setError(null)
     function receive(next: SessionSnapshot) {
       if (controller.signal.aborted || next.session.id !== sessionId) return
-      setSnapshot(current => !current || next.revision >= current.revision ? next : current)
+      setSnapshot(current => mergeSessionSnapshot(current, next))
       setError(null)
     }
     const unsubscribe = subscribeGroupSocket(groupId, event => {

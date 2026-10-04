@@ -108,6 +108,9 @@ Both Python bridges support `WS_PORT`, retaining 8765 as the default. Run the
 flight bridge on 8765 and the hotel bridge with `WS_PORT=8766`, using each service's
 own environment and credentials. The Go backend can alternatively use the
 services' Lambda HTTP URLs for results, but those calls do not provide live frames.
+Restart the Go orchestrator after changing these URLs, and restart a Python
+bridge after changing its service code. Running bridges alone does not enable
+streaming while the orchestrator's WebSocket URLs are empty.
 
 `MOCK_TRAVEL=true` on the backend provides mock travel offers with real workflow
 events; Gemini still needs its configured key. No frontend mock events or sample

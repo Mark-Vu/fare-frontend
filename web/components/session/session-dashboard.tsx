@@ -63,7 +63,7 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
               <Button variant={agent === "hotel" ? "default" : "ghost"} size="sm" aria-pressed={agent === "hotel"} onClick={() => setAgent("hotel")}><IconBuilding className="size-3.5" />Hotel agent{state.hotel === "completed" && <IconCheck className="size-3" />}</Button>
             </div>
             <LiveBrowser status={browserStatus} agentType={agent} previews={state.previews[agent]} />
-            <p role="status" className="text-xs leading-5 text-muted-foreground">{agent === "flight" ? state.flightMessage : state.hotelMessage}</p>
+            <p role={browserStatus === "failed" ? "alert" : "status"} className={`text-xs leading-5 ${browserStatus === "failed" ? "text-destructive" : "text-muted-foreground"}`}>{agent === "flight" ? state.flightMessage : state.hotelMessage}</p>
             {state.flights.length > 0 && <FlightResults flights={state.flights} />}
             {state.hotels.length > 0 && <HotelResults hotels={state.hotels} />}
           </div>

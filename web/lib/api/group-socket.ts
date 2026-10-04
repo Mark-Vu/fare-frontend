@@ -1,4 +1,5 @@
 import type { ConnectionStatus, DashboardEvent, SessionSnapshot } from "@/types/dashboard"
+import { applyBrowserEvent, mergeSessionSnapshot } from "@/lib/session-snapshot"
 
 export const orchestratorUrl = (process.env.NEXT_PUBLIC_ORCHESTRATOR_URL || "http://localhost:8000").replace(/\/$/, "")
 const socketBase = (process.env.NEXT_PUBLIC_ORCHESTRATOR_WS_URL || orchestratorUrl.replace(/^http/, "ws")).replace(/\/$/, "")
@@ -53,11 +54,15 @@ export function subscribeGroupSocket(groupId: string, event: Listener["event"], 
       try { message = JSON.parse(data) } catch { return }
       if (!message || message.version !== 1 || message.groupId !== groupId || typeof message.type !== "string") return
       if (message.type === "group.snapshot" && message.sessions) {
+        const previous = new Map(current.snapshots)
         current.snapshots.clear()
-        message.sessions.forEach(snapshot => current.snapshots.set(snapshot.session.id, snapshot))
+        message.sessions.forEach(snapshot => current.snapshots.set(snapshot.session.id, mergeSessionSnapshot(previous.get(snapshot.session.id) ?? null, snapshot)))
         current.hasSnapshot = true
       } else if (message.snapshot) {
-        current.snapshots.set(message.snapshot.session.id, message.snapshot)
+        current.snapshots.set(message.snapshot.session.id, mergeSessionSnapshot(current.snapshots.get(message.snapshot.session.id) ?? null, message.snapshot))
+      } else if (message.sessionId && message.type.startsWith("agent.browser.")) {
+        const snapshot = current.snapshots.get(message.sessionId)
+        if (snapshot) current.snapshots.set(message.sessionId, applyBrowserEvent(snapshot, message))
       }
       current.revision = message.revision ?? current.revision
       current.listeners.forEach(item => item.event(message))
