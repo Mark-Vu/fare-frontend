@@ -10,6 +10,7 @@ import { ActivityEditor, useItineraryEdits } from "@/components/session/activity
 import { OfferLink } from "@/components/session/offer-link"
 import { ExpenseTracker } from "./expense-tracker"
 import { travelSourceLabel } from "@/lib/travel-source-label"
+import { TripSkeleton } from "@/components/ui/skeleton"
 
 const tabs = ["Itinerary", "Money", "Flights & stays", "Chat"] as const
 type Tab = (typeof tabs)[number]
@@ -170,7 +171,7 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
   }
 
   if (!trip && !error) {
-    return <p className="text-sm text-muted-foreground">Loading the WhatsApp trip…</p>
+    return <TripSkeleton embed={embed} />
   }
   if (!trip) {
     if (embed) return <p className="text-sm text-muted-foreground">{error || "The shared WhatsApp plan appears here once Fare is tagged in the group."}</p>

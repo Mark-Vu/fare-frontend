@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { actOnExpenses, ExpenseError, getExpenses, type ExpenseAction, type ExpenseMember, type ExpenseRequest, type LedgerView } from "@/lib/api/expenses"
+import { Bone } from "@/components/ui/skeleton"
 
 const money = new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const field = "mt-1 block w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
@@ -27,10 +28,6 @@ function memberLabel(member: ExpenseMember) {
 }
 function namedIds(members: ExpenseMember[]) {
   return members.filter(member => memberLabel(member)).map(member => member.id)
-}
-
-function Bone({ className }: { className: string }) {
-  return <span aria-hidden="true" className={`block rounded-lg bg-secondary motion-safe:animate-pulse ${className}`} />
 }
 
 function ExpenseSkeleton() {

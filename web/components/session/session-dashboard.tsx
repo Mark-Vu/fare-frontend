@@ -19,6 +19,7 @@ import { HotelResults } from "./hotel-results"
 import { FinalPlan } from "./final-plan"
 import { LiveTrip } from "@/components/dashboard/live-trip"
 import { StepStatusBadge, stepStatusStyles } from "./step-status-badge"
+import { PlanSkeleton } from "@/components/ui/skeleton"
 import statusStyles from "./step-status.module.css"
 
 function FlowStep({ number, title, description, status, children }: { number: number; title: string; description: string; status: StepStatus; children?: ReactNode }) {
@@ -164,10 +165,7 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
       </FlowStep>
 
       <FlowStep number={3} title="Trip ready" description={readyDescription} status={readyStatus}>
-        {readyStatus === "running" && !state.plan && <div role="status" className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5">
-          <p className="flex items-center gap-2 text-sm font-medium"><IconLoader2 aria-hidden="true" className="size-4 motion-safe:animate-spin" />Preparing your trip</p>
-          <p className="mt-2 text-xs leading-5 text-muted-foreground">{session.message || "Bringing your flights, stay, and daily activities together."}</p>
-        </div>}
+        {readyStatus === "running" && !state.plan && <PlanSkeleton />}
         {state.plan && <FinalPlan key={session.id} plan={state.plan} session={session} />}
       </FlowStep>
     </ol>

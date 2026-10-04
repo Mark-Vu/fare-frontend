@@ -5,9 +5,10 @@ import { useGroupEvents } from "@/hooks/use-group-events"
 import { SessionCard } from "./session-card"
 import { TripHistory } from "./trip-history"
 import { SessionNotification } from "./session-notification"
+import { SearchCardSkeleton } from "@/components/ui/skeleton"
 
 export function GroupDashboard({ groupId, compact = false }: { groupId: string; compact?: boolean }) {
-  const { sessions, newSession, connection, error, dismissSession } = useGroupEvents(groupId)
+  const { sessions, newSession, connection, error, loaded, dismissSession } = useGroupEvents(groupId)
   const active = compact ? [] : sessions.filter(session => !["completed", "failed"].includes(session.status))
   const previous = compact ? sessions.slice(1) : sessions.filter(session => ["completed", "failed"].includes(session.status))
   const currentSearch = compact ? sessions[0] : undefined
@@ -28,9 +29,11 @@ export function GroupDashboard({ groupId, compact = false }: { groupId: string; 
     </section>}
     <section className={compact ? "mt-6" : "mt-10"} aria-live="polite">
       {!compact && <div className="mb-5 flex items-center gap-3"><h2 className="text-xl font-semibold tracking-tight">Planning now</h2><span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">{active.length}</span></div>}
-      {compact && currentSearch && <SessionCard session={currentSearch} />}
-      {compact && !currentSearch && <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-dashed border-border px-6 py-8"><span className="grid size-10 place-items-center rounded-full bg-secondary"><IconBrandWhatsapp className="size-5 text-primary" /></span><div><p className="font-medium">No search yet</p><p className="mt-1 text-sm text-muted-foreground">Flight and hotel search for this trip shows up here once Fare starts planning.</p></div></div>}
-      {!compact && (active.length ? <div className="flex flex-col gap-4">{active.map(session => <SessionCard key={session.id} session={session} />)}</div> : <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-dashed border-border px-6 py-8"><span className="grid size-10 place-items-center rounded-full bg-secondary"><IconBrandWhatsapp className="size-5 text-primary" /></span><div><p className="font-medium">Ready for your next idea</p><p className="mt-1 text-sm text-muted-foreground">Tag Fare in the group chat. New planning sessions appear here automatically.</p></div></div>)}
+      {!loaded && !error ? <SearchCardSkeleton count={compact ? 1 : 2} /> : <>
+        {compact && currentSearch && <SessionCard session={currentSearch} />}
+        {compact && !currentSearch && <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-dashed border-border px-6 py-8"><span className="grid size-10 place-items-center rounded-full bg-secondary"><IconBrandWhatsapp className="size-5 text-primary" /></span><div><p className="font-medium">No search yet</p><p className="mt-1 text-sm text-muted-foreground">Flight and hotel search for this trip shows up here once Fare starts planning.</p></div></div>}
+        {!compact && (active.length ? <div className="flex flex-col gap-4">{active.map(session => <SessionCard key={session.id} session={session} />)}</div> : <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-dashed border-border px-6 py-8"><span className="grid size-10 place-items-center rounded-full bg-secondary"><IconBrandWhatsapp className="size-5 text-primary" /></span><div><p className="font-medium">Ready for your next idea</p><p className="mt-1 text-sm text-muted-foreground">Tag Fare in the group chat. New planning sessions appear here automatically.</p></div></div>)}
+      </>}
     </section>
     {previous.length > 0 && <TripHistory sessions={previous} />}
 
