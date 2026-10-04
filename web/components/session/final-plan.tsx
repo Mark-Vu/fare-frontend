@@ -20,7 +20,7 @@ export function FinalPlan({ plan, session }: { plan: Plan; session: TripSession 
       <p className="mb-3 flex items-center gap-2 text-xs text-sun"><IconCheck className="size-4" />{plan.isSampleSchedule ? "Live search selections · sample daily itinerary" : "Made for your group"}</p>
       <h3 className="text-3xl font-semibold tracking-tight">Your {session.destination} trip</h3>
       <p className="mt-2 text-sm text-white/65">{tripDates(session.startDate, session.endDate)} · {plan.days.length} days to explore</p>
-      <div className="mt-6 border-t border-white/15 pt-5"><p className="text-xs text-white/65">Estimated total per person</p><p className="mt-1 text-3xl font-semibold tracking-tight text-sun">{cad(plan.flightPrice + plan.hotelPrice)}<span className="ml-2 text-xs font-normal">CAD</span></p><p className="mt-2 text-[11px] text-white/55">Flight + hotel · meals, transport, and activities extra</p></div>
+      <div className="mt-6 border-t border-white/15 pt-5"><p className="text-xs text-white/65">Estimated total per person</p><p className="mt-1 text-3xl font-semibold tracking-tight text-sun">{cad(plan.flightPrice + plan.hotelPrice)}<span className="ml-2 text-xs font-normal">CAD</span></p><p className="mt-2 text-[11px] text-white/55">Flight + hotel · meals, transport, and activities extra</p><p className="mt-3 text-[11px] leading-5 text-white/70">When you are ready, open the booking link. Dates and guests are already filled in, and you confirm the card so payment stays with you.</p></div>
     </div>
 
     <div className="px-5 py-6 sm:px-7">
