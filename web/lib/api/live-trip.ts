@@ -1,4 +1,4 @@
-import type { ItineraryActivity } from "@/types/session"
+import type { ActivityReplacement, ItineraryActivity } from "@/types/session"
 import { orchestratorUrl } from "./group-socket"
 
 export type TripCard = {
@@ -28,6 +28,7 @@ export type TripView = {
   editable: boolean
   current_session_id?: string
   itinerary_revision?: number
+  pending_activity_replacement?: ActivityReplacement | null
   can_undo_activity_edit?: boolean
   notification_warning?: string
   flight_reason?: string
