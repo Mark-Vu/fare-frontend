@@ -13,8 +13,20 @@ function validAmount(amount: string) {
   return Number.isSafeInteger(cents) && cents > 0 && cents <= 100000000
 }
 function cad(cents: number) { return money.format(cents / 100) }
-function memberLabel(member: ExpenseMember, members: ExpenseMember[]) {
-  return members.filter(row => row.name === member.name).length > 1 ? `${member.name} (${member.id})` : member.name
+function looksLikePhoneOrId(value: string) {
+  const text = value.trim()
+  if (!text) return true
+  if (/@(c\.us|g\.us|lid|s\.whatsapp\.net)\b/i.test(text)) return true
+  const digits = text.replace(/\D/g, "")
+  return digits.length >= 6 && !/[A-Za-z]/.test(text)
+}
+function memberLabel(member: ExpenseMember) {
+  const name = member.name?.trim() ?? ""
+  if (!name || name === member.id || looksLikePhoneOrId(name)) return ""
+  return name
+}
+function namedIds(members: ExpenseMember[]) {
+  return members.filter(member => memberLabel(member)).map(member => member.id)
 }
 
 export function ExpenseTracker({ groupId, sessionId }: { groupId: string; sessionId: string }) {
@@ -41,7 +53,7 @@ export function ExpenseTracker({ groupId, sessionId }: { groupId: string; sessio
     setLedger(current => current && current.revision > normalized.revision ? current : normalized)
     if (!initialized.current && members.length) {
       initialized.current = true
-      setDraft(current => ({ ...current, members: members.map(member => member.id) }))
+      setDraft(current => ({ ...current, members: namedIds(members) }))
     }
   }, [])
   const load = useCallback(async (signal?: AbortSignal) => {
@@ -100,18 +112,18 @@ export function ExpenseTracker({ groupId, sessionId }: { groupId: string; sessio
     if (!pending) return
     const saved = await mutate(pending.action)
     if (saved && mounted.current) {
-      if (pending.action.action === "add") setDraft({ description: "", amount: "", payer: "", members: saved.members.map(member => member.id) })
+      if (pending.action.action === "add") setDraft({ description: "", amount: "", payer: "", members: namedIds(saved.members) })
       setConfirmDelete(null)
     }
   }
 
   const locked = busy || uncertain
-  const members = ledger?.members || []
+  const members = (ledger?.members || []).filter(member => memberLabel(member))
   const validActor = members.some(member => member.id === actor)
   const writable = !!ledger?.writable
   function name(id: string) {
     const member = members.find(row => row.id === id)
-    return member ? memberLabel(member, members) : id
+    return member ? memberLabel(member) : "Someone"
   }
   function changeDraft(next: typeof draft) { operation.current = null; setDraft(next) }
 
@@ -129,15 +141,15 @@ export function ExpenseTracker({ groupId, sessionId }: { groupId: string; sessio
       {writable && members.length > 0 && <form className="mt-5 space-y-4" onSubmit={async e => {
         e.preventDefault()
         const saved = await mutate({ action: "add", actor_id: actor, description: draft.description.trim(), amount: draft.amount.trim(), payer_id: draft.payer, member_ids: draft.members })
-        if (saved && mounted.current) setDraft({ description: "", amount: "", payer: "", members: saved.members.map(member => member.id) })
+        if (saved && mounted.current) setDraft({ description: "", amount: "", payer: "", members: namedIds(saved.members) })
       }}>
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-xs">You are<select required value={actor} disabled={locked} onChange={e => { operation.current = null; setActor(e.target.value) }} className={field}><option value="">Pick your name</option>{members.map(member => <option key={member.id} value={member.id}>{memberLabel(member, members)}</option>)}</select></label>
-          <label className="text-xs">Paid by<select required value={draft.payer} disabled={locked} onChange={e => changeDraft({ ...draft, payer: e.target.value })} className={field}><option value="">Pick who paid</option>{members.map(member => <option key={member.id} value={member.id}>{memberLabel(member, members)}</option>)}</select></label>
+          <label className="text-xs">You are<select required value={actor} disabled={locked} onChange={e => { operation.current = null; setActor(e.target.value) }} className={field}><option value="">Pick your name</option>{members.map(member => <option key={member.id} value={member.id}>{memberLabel(member)}</option>)}</select></label>
+          <label className="text-xs">Paid by<select required value={draft.payer} disabled={locked} onChange={e => changeDraft({ ...draft, payer: e.target.value })} className={field}><option value="">Pick who paid</option>{members.map(member => <option key={member.id} value={member.id}>{memberLabel(member)}</option>)}</select></label>
           <label className="text-xs">What was it for?<input required maxLength={200} value={draft.description} disabled={locked} onChange={e => changeDraft({ ...draft, description: e.target.value })} placeholder="Dinner" className={field} /></label>
           <label className="text-xs">Amount (CAD)<input required type="text" inputMode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" maxLength={10} value={draft.amount} disabled={locked} onChange={e => changeDraft({ ...draft, amount: e.target.value })} placeholder="45.50" className={field} /></label>
         </div>
-        <fieldset disabled={locked}><legend className="text-xs">Split equally between</legend><div className="mt-2 flex flex-wrap gap-4">{members.map(member => <label key={member.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.members.includes(member.id)} onChange={e => changeDraft({ ...draft, members: e.target.checked ? [...draft.members, member.id] : draft.members.filter(id => id !== member.id) })} />{memberLabel(member, members)}</label>)}</div></fieldset>
+        <fieldset disabled={locked}><legend className="text-xs">Split equally between</legend><div className="mt-2 flex flex-wrap gap-4">{members.map(member => <label key={member.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.members.includes(member.id)} onChange={e => changeDraft({ ...draft, members: e.target.checked ? [...draft.members, member.id] : draft.members.filter(id => id !== member.id) })} />{memberLabel(member)}</label>)}</div></fieldset>
         <button disabled={locked || !validActor || !validAmount(draft.amount.trim()) || !draft.members.length || !members.some(member => member.id === draft.payer) || !draft.description.trim()} className="rounded-full bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">{busy ? "Saving…" : "Add expense"}</button>
       </form>}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">

@@ -1,17 +1,35 @@
 "use client"
 import { IconBuilding, IconChevronDown } from "@tabler/icons-react"
 import { money } from "@/lib/trip-format"
+import { actOnTrip } from "@/lib/api/live-trip"
 import { OfferLink } from "@/components/session/offer-link"
 import type { Hotel } from "@/types/hotel"
+import { useState } from "react"
 
-export function HotelResults({ hotels }: { hotels: Hotel[] }) {
+export function HotelResults({ hotels, groupId }: { hotels: Hotel[]; groupId?: string }) {
+  const [busy, setBusy] = useState<string | null>(null)
+  const [note, setNote] = useState<string | null>(null)
+  async function pick(hotel: Hotel) {
+    if (!groupId) return
+    setBusy(hotel.id)
+    setNote(null)
+    try {
+      await actOnTrip(groupId, { action: "select_hotel", offer_id: hotel.id, name: hotel.name, price: String(hotel.price), ...(hotel.source ? { source: hotel.source } : {}) })
+      setNote(`${hotel.name} is now the group stay. WhatsApp was told.`)
+    } catch (err) {
+      setNote(err instanceof Error ? err.message : "Could not save that stay.")
+    } finally {
+      setBusy(null)
+    }
+  }
   return <details className="group/hotels overflow-hidden rounded-2xl border border-orange-200 border-t-4 border-t-orange-500 bg-orange-50/60">
     <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-4 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-orange-500 sm:p-6 [&::-webkit-details-marker]:hidden">
       <h2 className="flex items-center gap-3 text-lg font-semibold tracking-tight"><span className="grid size-10 place-items-center rounded-xl bg-orange-600 text-white"><IconBuilding className="size-5" /></span>Stays found</h2>
       <span className="flex items-center gap-3"><span className="rounded-full border border-orange-200 bg-orange-100 px-3 py-1 text-[11px] font-semibold text-orange-800">{hotels.length} {hotels.length === 1 ? "stay" : "stays"} found</span><IconChevronDown aria-hidden="true" className="size-4 text-orange-700 transition-transform group-open/hotels:rotate-180" /></span>
     </summary>
     <div className="border-t border-orange-200 px-4 pb-4 sm:px-6 sm:pb-6">
-    <p className="mt-3 text-xs text-muted-foreground">Full stay total · guest scores use each site’s rating scale.</p>
+    <p className="mt-3 text-xs text-muted-foreground">Full stay total · guest scores use each site’s rating scale. Choosing one updates the shared trip and the WhatsApp group.</p>
+    {note && <p className="mt-3 text-sm text-orange-800">{note}</p>}
     <div className="mt-4 space-y-3">
       {hotels.map(hotel => <div key={hotel.id} className="rounded-xl border border-orange-200/80 bg-card p-4 transition-colors duration-200 hover:border-orange-400">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -25,6 +43,7 @@ export function HotelResults({ hotels }: { hotels: Hotel[] }) {
         </div>
         {hotel.priceNote && <p className="mt-3 text-[11px] text-muted-foreground">{hotel.priceNote}</p>}
         <div className="mt-3 flex flex-wrap items-center gap-3">
+          {groupId && <button type="button" disabled={busy === hotel.id} onClick={() => void pick(hotel)} className="cursor-pointer rounded-full bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60">{busy === hotel.id ? "Saving…" : "Use this stay"}</button>}
           <OfferLink url={hotel.url} label="View stay" />
         </div>
       </div>)}

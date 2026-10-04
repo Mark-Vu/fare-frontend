@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { IconBrandWhatsapp, IconChevronDown, IconMapPin, IconSend } from "@tabler/icons-react"
+import { IconBrandWhatsapp, IconBuilding, IconChevronDown, IconMapPin, IconPlane, IconSend } from "@tabler/icons-react"
 import { actOnTrip, getTrip, type TripView } from "@/lib/api/live-trip"
 import { getSessionSnapshot } from "@/lib/api/sessions"
 import type { SessionSnapshot } from "@/types/dashboard"
@@ -46,11 +46,56 @@ function moneyBreakdown(trip: TripView, quote: SessionSnapshot | null) {
   return { flightEach, hotelGroup, hotelEach, travelEach, travelGroup, fromSearch }
 }
 
+function alignOffers<T extends { offer_id: string }>(incoming: T[] | undefined, current: T[] | undefined) {
+  const next = incoming ?? []
+  const order: string[] = []
+  const seen = new Set<string>()
+  for (const row of [...(current ?? []), ...next]) {
+    if (!row.offer_id || seen.has(row.offer_id)) continue
+    order.push(row.offer_id)
+    seen.add(row.offer_id)
+  }
+  const byId = new Map(next.map(row => [row.offer_id, row]))
+  return order.flatMap(id => {
+    const row = byId.get(id)
+    return row ? [row] : []
+  })
+}
+
+function acceptSaved(current: TripView | null, next: TripView): TripView {
+  if (!current) return next
+  return { ...next, flights: alignOffers(next.flights, current.flights), hotels: alignOffers(next.hotels, current.hotels) }
+}
+
 function mergeTrip(current: TripView | null, next: TripView): TripView {
   if (!current || current.group_id !== next.group_id) return next
   if (current.current_session_id === next.current_session_id && (current.itinerary_revision ?? 0) > (next.itinerary_revision ?? 0)) return current
   if (Date.parse(next.updated_at) < Date.parse(current.updated_at)) return current
-  return next
+  return { ...next, flights: alignOffers(next.flights, current.flights), hotels: alignOffers(next.hotels, current.hotels) }
+}
+
+function showSelection(trip: TripView, action: string, offerId: string): TripView {
+  const people = Math.max(1, trip.spend?.people || trip.people?.filter(person => person.name).length || 1)
+  const spend = trip.spend ? { ...trip.spend } : null
+  if (action === "select_flight") {
+    const flights = (trip.flights ?? []).map(flight => ({ ...flight, selected: flight.offer_id === offerId, reason: undefined }))
+    const price = flights.find(flight => flight.selected)?.price || 0
+    if (spend && price > 0) {
+      spend.flight_each = price
+      spend.travel_each = price + (spend.hotel_each || 0)
+      spend.travel_group = price * people + (spend.hotel_group || 0)
+    }
+    return { ...trip, flights, spend: spend ?? trip.spend, updated_at: new Date().toISOString() }
+  }
+  const hotels = (trip.hotels ?? []).map(hotel => ({ ...hotel, selected: hotel.offer_id === offerId, reason: undefined }))
+  const total = hotels.find(hotel => hotel.selected)?.total || 0
+  if (spend && total > 0) {
+    spend.hotel_group = total
+    spend.hotel_each = Math.round(total / people * 100) / 100
+    spend.travel_each = (spend.flight_each || 0) + spend.hotel_each
+    spend.travel_group = (spend.flight_each || 0) * people + total
+  }
+  return { ...trip, hotels, spend: spend ?? trip.spend, updated_at: new Date().toISOString() }
 }
 
 export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: string; embed?: boolean; sessionId?: string }) {
@@ -63,6 +108,7 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
   const [budget, setBudget] = useState("")
   const [chat, setChat] = useState("")
   const [quote, setQuote] = useState<SessionSnapshot | null>(null)
+  const selectGeneration = useRef(0)
 
   useEffect(() => {
     const saved = localStorage.getItem(`fare-actor:${groupId}`) || ""
@@ -104,15 +150,22 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
   const names = useMemo(() => trip?.people?.map(p => p.name).filter(Boolean) ?? [], [trip])
 
   async function run(body: Record<string, string>) {
-    setBusy(true)
+    const selecting = (body.action === "select_flight" || body.action === "select_hotel") && !!body.offer_id
+    const generation = selecting ? ++selectGeneration.current : 0
+    const previous = trip
+    if (selecting && trip) setTrip(showSelection(trip, body.action, body.offer_id))
+    else setBusy(true)
     setError(null)
     try {
       const next = await actOnTrip(groupId, { actor: actor || "Someone", ...body })
-      setTrip(current => mergeTrip(current, next))
+      if (selecting && generation !== selectGeneration.current) return
+      setTrip(current => selecting ? acceptSaved(current, next) : mergeTrip(current, next))
     } catch (err) {
+      if (selecting && generation !== selectGeneration.current) return
+      if (selecting && previous) setTrip(previous)
       setError(err instanceof Error ? err.message : "That didn’t go through.")
     } finally {
-      setBusy(false)
+      if (!selecting) setBusy(false)
     }
   }
 
@@ -208,15 +261,25 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
     <div className="mt-6">{(sessionId || trip.current_session_id) ? <ExpenseTracker key={`${groupId}:${sessionId || trip.current_session_id}`} groupId={groupId} sessionId={(sessionId || trip.current_session_id)!} /> : <p className="text-sm text-muted-foreground">Recorded expenses will be available once this trip has a planning session.</p>}</div>
     </>}
 
-    {tab === "Flights & stays" && <section className="mt-6 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Browse the flight and stay options for your itinerary.</p><button type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "chat", text: "show flight and hotel options on the dashboard" })} className="rounded-full bg-secondary px-4 py-2 text-sm">Ask Fare for options</button></div>
-      <div className="grid gap-3 md:grid-cols-3">{(trip.flights ?? []).map((flight, i) => <article key={`${flight.offer_id || flight.summary}-${i}`} className={`rounded-2xl border p-4 ${flight.selected ? "border-primary bg-secondary" : "border-border bg-card"}`}><p className="text-xs uppercase tracking-wide text-muted-foreground">{flight.selected ? "Chosen" : "Fare"}</p><p className="mt-2 font-semibold">{flight.airline || "Flight"}</p>{flight.source && <p className="mt-1 text-xs text-muted-foreground">{travelSourceLabel(flight.source)}</p>}<p className="text-sm">{flight.origin} → {flight.destination}</p><p className="mt-2 text-sm text-muted-foreground">{flight.summary}</p><p className="mt-3 font-medium">{cad(flight.price)} round trip each</p>{flight.selected && flight.reason && <p className="mt-2 text-xs leading-5 text-muted-foreground">{flight.reason}</p>}<div className="mt-3 flex flex-wrap items-center gap-2"><OfferLink url={flight.booking_url} label={flight.link_type === "search" ? "Search flights" : "View flight"} /><button type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "select_flight", offer_id: flight.offer_id })} className="rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold disabled:opacity-60">Use this fare</button></div></article>)}</div>
-      <div className="grid gap-4 md:grid-cols-3">{(trip.hotels ?? []).map((hotel, i) => <article key={`${hotel.offer_id || hotel.name}-${i}`} className={`overflow-hidden rounded-2xl border ${hotel.selected ? "border-primary" : "border-border"}`}>
+    {tab === "Flights & stays" && <div className="mt-6 space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Pick one fare and one stay. Each choice updates the shared trip.</p><button type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "chat", text: "show flight and hotel options on the dashboard" })} className="cursor-pointer rounded-full bg-secondary px-4 py-2 text-sm hover:bg-secondary/70 disabled:cursor-not-allowed disabled:opacity-50">Ask Fare for options</button></div>
+      <section className="rounded-2xl border border-blue-200 bg-blue-50/60 p-5">
+        <h2 className="flex items-center gap-3 text-lg font-semibold"><span className="grid size-10 place-items-center rounded-xl bg-blue-600 text-white"><IconPlane className="size-5" /></span>Flights</h2>
+        <p className="mt-2 text-xs text-muted-foreground">Round trip, per person. The outlined card is the fare on the trip now.</p>
+        {(trip.flights ?? []).length === 0 && <p className="mt-4 text-sm text-muted-foreground">No fares yet.</p>}
+      <div className="mt-4 grid gap-3 md:grid-cols-3">{(trip.flights ?? []).map((flight, i) => <article key={flight.offer_id || flight.summary || String(i)} className={`rounded-2xl border bg-card p-4 transition-colors ${flight.selected ? "border-blue-500 ring-2 ring-blue-200" : "border-blue-200 hover:border-blue-400"}`}><p className="text-xs uppercase tracking-wide text-muted-foreground">{flight.selected ? "Chosen" : "Fare"}</p><p className="mt-2 font-semibold">{flight.airline || "Flight"}</p>{flight.source && <p className="mt-1 text-xs text-muted-foreground">{travelSourceLabel(flight.source)}</p>}<p className="text-sm">{flight.origin} → {flight.destination}</p><p className="mt-2 text-sm text-muted-foreground">{flight.summary}</p><p className="mt-3 font-medium">{cad(flight.price)} round trip each</p>{flight.selected && flight.reason && <p className="mt-2 text-xs leading-5 text-muted-foreground">{flight.reason}</p>}<div className="mt-3 flex flex-wrap items-center gap-2"><OfferLink url={flight.booking_url} label={flight.link_type === "search" ? "Search flights" : "View flight"} /><button type="button" disabled={busy || !trip.editable || flight.selected} onClick={() => run({ action: "select_flight", offer_id: flight.offer_id, airline: flight.airline || "", origin: flight.origin || "", destination: flight.destination || "", summary: flight.summary || "", price: String(flight.price || 0), ...(flight.source ? { source: flight.source } : {}), ...(flight.booking_url ? { booking_url: flight.booking_url } : {}), ...(flight.link_type ? { link_type: flight.link_type } : {}) })} className="cursor-pointer rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">{flight.selected ? "On the trip" : "Use this fare"}</button></div></article>)}</div>
+      </section>
+      <section className="rounded-2xl border border-orange-200 bg-orange-50/60 p-5">
+        <h2 className="flex items-center gap-3 text-lg font-semibold"><span className="grid size-10 place-items-center rounded-xl bg-orange-600 text-white"><IconBuilding className="size-5" /></span>Stays</h2>
+        <p className="mt-2 text-xs text-muted-foreground">Full stay for the group. The outlined card is the stay on the trip now.</p>
+        {(trip.hotels ?? []).length === 0 && <p className="mt-4 text-sm text-muted-foreground">No stays yet.</p>}
+      <div className="mt-4 grid gap-4 md:grid-cols-3">{(trip.hotels ?? []).map((hotel, i) => <article key={hotel.offer_id || hotel.name || String(i)} className={`overflow-hidden rounded-2xl border bg-card transition-colors ${hotel.selected ? "border-orange-500 ring-2 ring-orange-200" : "border-orange-200 hover:border-orange-400"}`}>
         {hotel.image && <img src={hotel.image} alt="" className="h-36 w-full object-cover" />}
-        <div className="bg-card p-4"><p className="text-xs uppercase tracking-wide text-muted-foreground">{hotel.selected ? "Chosen stay" : hotel.city}</p><h3 className="mt-1 font-semibold">{hotel.name}</h3>{hotel.source && <p className="mt-1 text-xs text-muted-foreground">{hotel.source === "booking_com" ? "Booking.com" : hotel.source === "airbnb" ? "Airbnb" : hotel.source}{hotel.property_type ? ` · ${hotel.property_type}` : ""}</p>}<p className="mt-2 text-sm">{cad(hotel.nightly)} / night · {cad(hotel.total)} group{hotel.rating != null ? ` · ${hotel.original_rating ?? hotel.rating} / ${hotel.original_rating_scale ?? 10}` : ""}</p>{hotel.price_note && <p className="mt-2 text-xs text-muted-foreground">{hotel.price_note}</p>}{hotel.selected && hotel.reason && <p className="mt-2 text-xs leading-5 text-muted-foreground">{hotel.reason}</p>}<div className="mt-4 flex flex-wrap gap-2"><OfferLink url={hotel.booking_url || hotel.checkout_url || hotel.url} label="View stay" /></div></div>
+        <div className="bg-card p-4"><p className="text-xs uppercase tracking-wide text-muted-foreground">{hotel.selected ? "Chosen stay" : hotel.city}</p><h3 className="mt-1 font-semibold">{hotel.name}</h3>{hotel.source && <p className="mt-1 text-xs text-muted-foreground">{hotel.source === "booking_com" ? "Booking.com" : hotel.source === "airbnb" ? "Airbnb" : hotel.source}{hotel.property_type ? ` · ${hotel.property_type}` : ""}</p>}<p className="mt-2 text-sm">{cad(hotel.nightly)} / night · {cad(hotel.total)} group{hotel.rating != null ? ` · ${hotel.original_rating ?? hotel.rating} / ${hotel.original_rating_scale ?? 10}` : ""}</p>{hotel.price_note && <p className="mt-2 text-xs text-muted-foreground">{hotel.price_note}</p>}{hotel.selected && hotel.reason && <p className="mt-2 text-xs leading-5 text-muted-foreground">{hotel.reason}</p>}<div className="mt-4 flex flex-wrap gap-2"><button type="button" disabled={busy || !trip.editable || hotel.selected} onClick={() => run({ action: "select_hotel", offer_id: hotel.offer_id, name: hotel.name || "", city: hotel.city || "", price: String(hotel.total || 0), ...(hotel.nightly ? { price_per_night: String(hotel.nightly) } : {}), ...(hotel.source ? { source: hotel.source } : {}), ...((hotel.booking_url || hotel.checkout_url || hotel.url) ? { checkout_url: hotel.booking_url || hotel.checkout_url || hotel.url } : {}) })} className="cursor-pointer rounded-full bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50">{hotel.selected ? "On the trip" : "Use this stay"}</button><OfferLink url={hotel.booking_url || hotel.checkout_url || hotel.url} label="View stay" /></div></div>
       </article>)}
       </div>
-    </section>}
+      </section>
+    </div>}
 
     {tab === "Chat" && <section className="mt-6 flex h-[32rem] flex-col overflow-hidden rounded-2xl border border-border bg-card">
       <div className="flex-1 space-y-3 overflow-y-auto p-4">

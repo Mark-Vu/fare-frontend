@@ -57,7 +57,7 @@ export function FlightResults({ flights, groupId }: { flights: Flight[]; groupId
         <div className="mt-3 flex flex-wrap items-center gap-3">
           {index === 0 && <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-2.5 py-1 text-[10px] font-semibold text-white"><IconPlane className="size-3" />Lowest displayed fare</span>}
           <OfferLink url={flight.bookingUrl} label={flight.linkType === "search" ? "Search flights" : "View flight"} />
-          {groupId && <button type="button" disabled={busy === flight.id} onClick={() => void pick(flight)} className="rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white disabled:opacity-60">Use this fare</button>}
+          {groupId && <button type="button" disabled={busy === flight.id} onClick={() => void pick(flight)} className="cursor-pointer rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">{busy === flight.id ? "Saving…" : "Use this fare"}</button>}
         </div>
       </div>)}
     </div>
