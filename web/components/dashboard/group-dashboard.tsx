@@ -16,12 +16,13 @@ export function GroupDashboard({ groupId, compact = false }: { groupId: string; 
   const previous = sessions.filter(session => ["completed", "failed"].includes(session.status))
   const sessionFailed = newSession?.status === "failed"
   const sessionCompleted = newSession?.status === "completed"
+  const showNotice = Boolean(newSession && (sessionFailed || sessionCompleted))
   const failureMessage = "Fare could not finish this planning session. Open the session for details, then try again in the group chat."
   useEffect(() => {
     const popup = dialog.current
-    if (newSession && popup && !popup.open) popup.showModal()
-    if (!newSession && popup?.open) popup.close()
-  }, [newSession])
+    if (showNotice && popup && !popup.open) popup.showModal()
+    if (!showNotice && popup?.open) popup.close()
+  }, [showNotice])
 
   return <>
     {!compact && <div className="flex flex-wrap items-end justify-between gap-6">

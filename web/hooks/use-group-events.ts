@@ -27,15 +27,14 @@ export function useGroupEvents(groupId: string) {
       setNewSession(session)
     }
     function receiveSessions(next: TripSession[]) {
-      const active = next.find(session => !seen.has(session.id) && !["completed", "failed"].includes(session.status))
       const latestFailure = next[0]?.status === "failed" && !seen.has(next[0].id) ? next[0] : null
       // A session may finish before the next snapshot arrives. Notify about new
       // sessions discovered after loading, including those already completed.
-      const latestNew = receivedSessions && next[0] && !seen.has(next[0].id) ? next[0] : null
+      const latestNew = receivedSessions && next[0] && !seen.has(next[0].id) && ["completed", "failed"].includes(next[0].status) ? next[0] : null
       next.forEach(session => seen.add(session.id))
       receivedSessions = true
       setSessions(next)
-      const notification = latestNew || active || latestFailure
+      const notification = latestNew || latestFailure
       if (notification) notify(notification)
       else setNewSession(current => current ? next.find(session => session.id === current.id) ?? current : null)
     }
@@ -68,7 +67,7 @@ export function useGroupEvents(groupId: string) {
         setSessions(current => [session, ...current.filter(item => item.id !== session.id)])
         // Start events are authoritative even if an HTTP snapshot already
         // introduced the session. Receiving it and notifying are separate.
-        if (event.type === "session.started" || !seen.has(session.id)) notify(session)
+        if ((event.type === "session.started" || !seen.has(session.id)) && ["completed", "failed"].includes(session.status)) notify(session)
         else setNewSession(current => current?.id === session.id ? session : current)
         seen.add(session.id)
       } else if (event.type === "connection.error") {
