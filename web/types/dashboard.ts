@@ -9,6 +9,8 @@ export type SearchRecordingSource = {
   website?: string
   origin?: string
   status?: string
+  warning?: string | null
+  resultsComplete?: boolean
   error?: SearchError | null
   recordingUrl?: string | null
   replayUrl?: string | null

@@ -1,5 +1,6 @@
 import { IconCheck, IconPlane, IconBuilding, IconSparkles, IconChevronDown } from "@tabler/icons-react"
 import { cad, tripDates } from "@/lib/trip-format"
+import { travelSourceLabel } from "@/lib/travel-source-label"
 import type { FinalPlan as Plan, TripSession } from "@/types/session"
 
 function dayDate(date: string) {
@@ -24,7 +25,7 @@ export function FinalPlan({ plan, session }: { plan: Plan; session: TripSession 
 
     <div className="px-5 py-6 sm:px-7">
       <div className="space-y-5">
-        <div><p className="flex items-center gap-2 text-xs text-muted-foreground"><IconPlane className="size-4" />Flight</p><p className="mt-2 text-sm font-semibold">{plan.flight}</p><p className="mt-1 text-sm text-muted-foreground">{plan.route} · {cad(plan.flightPrice)} / person</p></div>
+        <div><p className="flex items-center gap-2 text-xs text-muted-foreground"><IconPlane className="size-4" />Flight</p><p className="mt-2 text-sm font-semibold">{plan.flight}</p>{plan.flightSource && <p className="mt-1 text-xs text-muted-foreground">{travelSourceLabel(plan.flightSource)}</p>}<p className="mt-1 text-sm text-muted-foreground">{plan.route} · {cad(plan.flightPrice)} / person</p></div>
         <div className="border-t border-border pt-5"><p className="flex items-center gap-2 text-xs text-muted-foreground"><IconBuilding className="size-4" />Stay</p><p className="mt-2 text-sm font-semibold">{plan.hotel}</p><p className="mt-1 text-sm text-muted-foreground">{plan.nights} nights · {cad(plan.hotelPrice)} / person</p></div>
       </div>
       <div className="mt-6 border-t border-border pt-5"><h4 className="flex items-center gap-2 text-sm font-semibold"><IconSparkles className="size-4 text-primary" />Why this plan?</h4><p className="mt-2 text-sm leading-6 text-muted-foreground">{plan.explanation}</p></div>

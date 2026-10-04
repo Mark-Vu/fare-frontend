@@ -2,6 +2,7 @@
 import { IconPlane, IconChevronDown } from "@tabler/icons-react"
 import { money } from "@/lib/trip-format"
 import { actOnTrip } from "@/lib/api/live-trip"
+import { travelSourceLabel } from "@/lib/travel-source-label"
 import type { Flight } from "@/types/flight"
 import { useState } from "react"
 
@@ -22,6 +23,7 @@ export function FlightResults({ flights, groupId }: { flights: Flight[]; groupId
         destination: destination || "",
         summary: `${flight.duration} · ${flight.stops}`,
         price: String(flight.price),
+        ...(flight.source ? { source: flight.source } : {}),
       })
       setNote(`${flight.airline} is now the group fare. WhatsApp was told.`)
     } catch (err) {
@@ -43,6 +45,7 @@ export function FlightResults({ flights, groupId }: { flights: Flight[]; groupId
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1 basis-40">
             <p className="text-sm font-semibold">{flight.airline}</p>
+            {flight.source && <p className="mt-1 text-[11px] font-medium text-blue-800">{travelSourceLabel(flight.source)}</p>}
             <p className="mt-1 text-xs leading-5 text-muted-foreground">{flight.route} · {flight.duration} · {flight.stops}</p>
             {flight.departureTime && <p className="mt-2 text-xs font-medium text-blue-800">{flight.departureTime} → {flight.arrivalTime ?? "Arrival unavailable"}</p>}
           </div>
