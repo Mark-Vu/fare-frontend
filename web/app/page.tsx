@@ -9,6 +9,7 @@ import {
   IconUsers as Users,
 } from "@tabler/icons-react"
 
+import { FareLogo } from "@/components/fare-logo"
 import { Reveal, RevealItem } from "@/components/reveal"
 import { Button } from "@/components/ui/button"
 import { WhatsAppStory } from "@/components/whatsapp-story"
@@ -94,14 +95,7 @@ export default function Page() {
             href="#top"
             className="flex min-h-11 items-center outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:absolute md:left-1/2 md:-translate-x-1/2"
           >
-            <Image
-              src="/images/fareLogo.png"
-              alt="Fare"
-              width={112}
-              height={78}
-              className="h-11 w-auto md:h-24"
-              priority
-            />
+            <FareLogo priority className="h-11 md:h-24" />
           </a>
           <Button
             render={<a href="/dashboard" />}
@@ -549,13 +543,7 @@ export default function Page() {
             href="#top"
             className="flex min-h-11 items-center outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
-            <Image
-              src="/images/fareLogo.png"
-              alt="Fare"
-              width={112}
-              height={78}
-              className="h-7 w-auto"
-            />
+            <FareLogo className="h-7" />
           </a>
           <p>Plan together. Go somewhere good.</p>
           <div className="flex gap-5">
