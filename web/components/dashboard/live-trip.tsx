@@ -5,6 +5,7 @@ import Link from "next/link"
 import { IconBrandWhatsapp, IconMapPin, IconSend } from "@tabler/icons-react"
 import { actOnTrip, getTrip, type TripView } from "@/lib/api/live-trip"
 import { ActivityEditor, useItineraryEdits } from "@/components/session/activity-editor"
+import { ExpenseTracker } from "./expense-tracker"
 import { travelSourceLabel } from "@/lib/travel-source-label"
 
 const tabs = ["Itinerary", "Money", "Flights & stays", "Chat"] as const
@@ -122,7 +123,7 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
       </aside>
     </section>}
 
-    {tab === "Money" && <section className="mt-6 grid gap-4 md:grid-cols-2">
+    {tab === "Money" && <><section className="mt-6 grid gap-4 md:grid-cols-2">
       <div className="rounded-2xl border border-border bg-card p-6">
         <h2 className="text-lg font-semibold">Flights + hotel</h2>
         <p className="mt-1 text-xs text-muted-foreground">Food is not in these numbers.</p>
@@ -142,7 +143,9 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
           <div className="mt-4 flex gap-2"><input value={budget} onChange={e => setBudget(e.target.value)} placeholder="2500" className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm" /><button disabled={busy} className="rounded-xl bg-primary px-4 text-sm text-primary-foreground">Save</button></div>
         </form>
       </div>
-    </section>}
+    </section>
+    <div className="mt-6">{(sessionId || trip.current_session_id) ? <ExpenseTracker key={`${groupId}:${sessionId || trip.current_session_id}`} groupId={groupId} sessionId={(sessionId || trip.current_session_id)!} /> : <p className="text-sm text-muted-foreground">Recorded expenses will be available once this trip has a planning session.</p>}</div>
+    </>}
 
     {tab === "Flights & stays" && <section className="mt-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Browse the flight and stay options for your itinerary.</p><button type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "chat", text: "show flight and hotel options on the dashboard" })} className="rounded-full bg-secondary px-4 py-2 text-sm">Ask Fare for options</button></div>
