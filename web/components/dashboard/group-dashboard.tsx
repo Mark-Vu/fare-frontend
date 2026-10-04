@@ -5,6 +5,7 @@ import Link from "next/link"
 import { IconBrandWhatsapp, IconArrowRight, IconSparkles, IconX } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { useGroupEvents } from "@/hooks/use-group-events"
+import { groupPathId } from "@/lib/group-id"
 import { SessionCard } from "./session-card"
 import { TripHistory } from "./trip-history"
 
@@ -47,7 +48,7 @@ export function GroupDashboard({ groupId, compact = false }: { groupId: string; 
         <p className="mt-6 text-xs font-medium tracking-widest text-primary uppercase">{sessionFailed ? "Planning interrupted" : sessionCompleted ? "Your trip is ready" : "Your group is planning"}</p>
         <h2 id="new-session-title" className="mt-2 text-2xl font-semibold tracking-tight">{sessionFailed ? "Your trip needs another try." : sessionCompleted ? "Your shared plan is ready." : "A new trip is taking shape."}</h2>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">{newSession?.destination && newSession.destination !== "Planning your trip" ? `${newSession.destination} is on the horizon. ` : ""}{sessionFailed ? failureMessage : sessionCompleted ? "Fare has finished your group’s itinerary. Open the plan to see the flight, stay, and daily schedule." : "Fare has started a planning session. Follow the agents and your itinerary as they come together."}</p>
-        <div className="mt-6 flex flex-wrap gap-3">{newSession && <Button render={<Link href={`/dashboard/${encodeURIComponent(groupId)}/${encodeURIComponent(newSession.id)}`} />} nativeButton={false} onClick={dismissSession}>{sessionFailed ? "View session" : sessionCompleted ? "View plan" : "View live plan"}<IconArrowRight className="size-4" /></Button>}<Button variant="outline" onClick={dismissSession}>Stay here</Button></div>
+        <div className="mt-6 flex flex-wrap gap-3">{newSession && <Button render={<Link href={`/dashboard/${groupPathId(groupId)}/${encodeURIComponent(newSession.id)}`} />} nativeButton={false} onClick={dismissSession}>{sessionFailed ? "View session" : sessionCompleted ? "View plan" : "View live plan"}<IconArrowRight className="size-4" /></Button>}<Button variant="outline" onClick={dismissSession}>Stay here</Button></div>
       </div>
     </dialog>
   </>

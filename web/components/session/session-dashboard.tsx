@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { useSessionEvents } from "@/hooks/use-session-events"
 import { planningTasks } from "@/lib/planning-tasks"
 import { tripDates } from "@/lib/trip-format"
+import { groupPathId } from "@/lib/group-id"
 import type { StepStatus } from "@/types/session"
 import type { SessionSnapshot } from "@/types/dashboard"
 import { LiveBrowser } from "./live-browser"
@@ -47,7 +48,7 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
   const sessionStepStatus: StepStatus = completed ? "completed" : failed ? "failed" : "running"
 
   return <div className="mx-auto max-w-4xl">
-    <Link href={`/dashboard/${encodeURIComponent(session.groupId)}`} className="mb-7 inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary"><IconArrowLeft className="size-4" />All group trips</Link>
+    <Link href={`/dashboard/${groupPathId(session.groupId)}`} className="mb-7 inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary"><IconArrowLeft className="size-4" />All group trips</Link>
     <div className="mb-10 flex flex-wrap items-end justify-between gap-5">
       <div><p className="mb-2 text-xs font-medium tracking-widest text-primary uppercase">Your next adventure</p><h1 className="text-5xl font-semibold tracking-[-0.05em] sm:text-6xl">{session.destination}</h1><p className="mt-3 text-sm text-muted-foreground">{session.origin} → {session.destination}<span className="mx-3 text-border">/</span>{tripDates(session.startDate, session.endDate)}</p></div>
       <div className="flex flex-wrap items-center gap-3"><StepStatusBadge key={state.status} status={sessionStepStatus} label={completed ? "Your trip is ready" : state.status === "created" ? "Understanding your group" : failed ? "Planning interrupted" : state.status === "planning" ? "Building your itinerary" : "Planning your trip"} /></div>
