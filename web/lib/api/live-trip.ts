@@ -7,6 +7,9 @@ export type TripCard = {
   destination: string
   origin: string
   dates: string
+  start_date: string
+  end_date: string
+  nights: number
   state: string
   updated_at: string
 }

@@ -11,13 +11,14 @@ export function SessionNotification({ session, dismissSession }: { session: Trip
   const dialog = useRef<HTMLDialogElement>(null)
   const sessionFailed = session?.status === "failed"
   const sessionCompleted = session?.status === "completed"
+  const showNotice = Boolean(session && (sessionFailed || sessionCompleted))
   const failureMessage = "Fare could not finish this planning session. Open the session for details, then try again in the group chat."
 
   useEffect(() => {
     const popup = dialog.current
-    if (session && popup && !popup.open) popup.showModal()
-    if (!session && popup?.open) popup.close()
-  }, [session])
+    if (showNotice && popup && !popup.open) popup.showModal()
+    if (!showNotice && popup?.open) popup.close()
+  }, [showNotice])
 
   return (
     <dialog ref={dialog} aria-labelledby="new-session-title" onCancel={event => { event.preventDefault(); dismissSession() }} className="fixed inset-0 m-auto w-[calc(100%_-_2.5rem)] max-w-md rounded-2xl border border-border bg-card p-0 text-foreground shadow-xl backdrop:bg-forest/45 backdrop:backdrop-blur-sm">
