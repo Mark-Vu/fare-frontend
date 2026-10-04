@@ -1,5 +1,6 @@
 "use client"
 
+import { OfferLink } from "@/components/session/offer-link"
 import { getSessionSnapshot } from "@/lib/api/sessions"
 import { useState } from "react"
 import { ActivityEditor, useItineraryEdits } from "./activity-editor"
@@ -52,8 +53,8 @@ export function FinalPlan({ plan: incomingPlan, session }: { plan: Plan; session
 
     <div className="px-5 py-6 sm:px-7">
       <div className="space-y-5">
-        <div><p className="flex items-center gap-2 text-xs text-muted-foreground"><IconPlane className="size-4" />Flight</p><p className="mt-2 text-sm font-semibold">{plan.flight}</p>{plan.flightSource && <p className="mt-1 text-xs text-muted-foreground">{travelSourceLabel(plan.flightSource)}</p>}<p className="mt-1 text-sm text-muted-foreground">{plan.route} · {cad(plan.flightPrice)} / person</p>{plan.flightReason && <p className="mt-2 text-xs leading-5 text-muted-foreground">{plan.flightReason}</p>}</div>
-        <div className="border-t border-border pt-5"><p className="flex items-center gap-2 text-xs text-muted-foreground"><IconBuilding className="size-4" />Stay</p><p className="mt-2 text-sm font-semibold">{plan.hotel}</p><p className="mt-1 text-sm text-muted-foreground">{plan.nights} nights · {cad(plan.hotelPrice)} / person</p>{plan.hotelReason && <p className="mt-2 text-xs leading-5 text-muted-foreground">{plan.hotelReason}</p>}</div>
+        <div><p className="flex items-center gap-2 text-xs text-muted-foreground"><IconPlane className="size-4" />Flight</p><p className="mt-2 text-sm font-semibold">{plan.flight}</p>{plan.flightSource && <p className="mt-1 text-xs text-muted-foreground">{travelSourceLabel(plan.flightSource)}</p>}<p className="mt-1 text-sm text-muted-foreground">{plan.route} · {cad(plan.flightPrice)} / person</p>{plan.flightReason && <p className="mt-2 text-xs leading-5 text-muted-foreground">{plan.flightReason}</p>}<div className="mt-3"><OfferLink url={plan.flightBookingUrl} label={plan.flightLinkType === "search" ? "Search flights" : "View flight"} /></div></div>
+        <div className="border-t border-border pt-5"><p className="flex items-center gap-2 text-xs text-muted-foreground"><IconBuilding className="size-4" />Stay</p><p className="mt-2 text-sm font-semibold">{plan.hotel}</p><p className="mt-1 text-sm text-muted-foreground">{plan.nights} nights · {cad(plan.hotelPrice)} / person</p>{plan.hotelReason && <p className="mt-2 text-xs leading-5 text-muted-foreground">{plan.hotelReason}</p>}<div className="mt-3"><OfferLink url={plan.hotelBookingUrl} label="View stay" /></div></div>
       </div>
       <div className="mt-6 border-t border-border pt-5"><h4 className="flex items-center gap-2 text-sm font-semibold"><IconSparkles className="size-4 text-primary" />About your itinerary</h4><p className="mt-2 text-sm leading-6 text-muted-foreground">{plan.explanation}</p></div>
     </div>

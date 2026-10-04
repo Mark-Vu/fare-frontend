@@ -59,8 +59,8 @@ export type TripView = {
   people: TripPerson[]
   days: { date?: string; activities?: ItineraryActivity[]; title: string; body: string; food_cad: number | null }[]
   places: { name: string; neighborhood: string; why: string; dish: string; est_cad: number | null; map: string }[]
-  flights: { offer_id: string; airline: string; origin: string; destination: string; summary: string; price: number; selected: boolean; reason?: string; source?: string }[]
-  hotels: { offer_id: string; name: string; city: string; nightly: number; total: number; rating: number | null; image: string; selected: boolean; reason?: string; source?: string; property_type?: string; original_rating?: number | null; original_rating_scale?: number | null; price_note?: string | null; checkout_url?: string }[]
+  flights: { offer_id: string; airline: string; origin: string; destination: string; summary: string; price: number; selected: boolean; reason?: string; source?: string; booking_url?: string; link_type?: "flight_selection" | "search" }[]
+  hotels: { offer_id: string; name: string; city: string; nightly: number; total: number; rating: number | null; image: string; selected: boolean; reason?: string; source?: string; property_type?: string; original_rating?: number | null; original_rating_scale?: number | null; price_note?: string | null; checkout_url?: string; booking_url?: string; url?: string }[]
   messages: { id: string; sender: string; text: string; bot: boolean; at: string }[]
 }
 
