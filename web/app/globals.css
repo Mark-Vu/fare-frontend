@@ -83,9 +83,10 @@
     @apply border-border outline-ring/50;
   }
 
-  html,
-  body {
-    overflow-x: clip;
+  html:has(#smooth-wrapper),
+  body:has(#smooth-wrapper) {
+    overflow: clip;
+    height: 100%;
   }
 
   html {
@@ -94,6 +95,12 @@
 
   body {
     @apply min-w-80 bg-background text-foreground;
+  }
+
+  #smooth-wrapper {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
   }
 
   h1,
@@ -125,7 +132,7 @@
   }
 
   .nav-link {
-    @apply hover:text-white;
+    @apply hover:text-foreground;
   }
 
   .footer-link {
@@ -332,6 +339,219 @@
     background: color-mix(in oklch, var(--device-black) 82%, transparent);
   }
 
+  .hero-glow {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      circle at 50% 28%,
+      color-mix(in oklch, var(--secondary) 85%, white) 0%,
+      color-mix(in oklch, var(--forest) 26%, transparent) 28%,
+      color-mix(in oklch, var(--forest) 9%, transparent) 50%,
+      transparent 72%
+    );
+    animation: hero-glow-pulse 9s ease-in-out infinite;
+  }
+
+  .hero-texture {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: radial-gradient(
+      color-mix(in oklch, var(--forest) 38%, transparent) 1px,
+      transparent 1.6px
+    );
+    background-size: 24px 24px;
+    -webkit-mask-image: radial-gradient(
+      circle at 50% 30%,
+      black 0%,
+      transparent 68%
+    );
+    mask-image: radial-gradient(circle at 50% 30%, black 0%, transparent 68%);
+  }
+
+  .hero-accent {
+    position: absolute;
+    z-index: 0;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(50px);
+    animation: hero-accent-float 16s ease-in-out infinite;
+  }
+
+  .hero-accent-1 {
+    top: 14%;
+    left: 8%;
+    width: 15rem;
+    height: 15rem;
+    background: color-mix(in oklch, var(--forest) 26%, transparent);
+    animation-delay: 0s;
+  }
+
+  .hero-accent-2 {
+    right: 10%;
+    bottom: 10%;
+    width: 19rem;
+    height: 19rem;
+    background: color-mix(in oklch, var(--secondary) 80%, transparent);
+    animation-delay: -6s;
+  }
+
+  .hero-accent-3 {
+    top: 58%;
+    right: 18%;
+    width: 11rem;
+    height: 11rem;
+    background: color-mix(in oklch, var(--forest) 18%, transparent);
+    animation-delay: -11s;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    min-height: 100dvh;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    padding: 6rem 1.5rem 4rem;
+    text-align: center;
+  }
+
+  .hero-subline {
+    margin: 0;
+    max-width: 36rem;
+    color: var(--muted-foreground);
+    font-size: 1.125rem;
+    line-height: 1.6;
+  }
+
+  .hero-globe {
+    position: absolute;
+    top: 45%;
+    left: 50%;
+    z-index: 1;
+    width: 98vw;
+    height: 98vw;
+    pointer-events: none;
+    transform: translateX(-50%);
+    -webkit-mask-image: radial-gradient(
+      circle at 50% 50%,
+      black 58%,
+      transparent 88%
+    );
+    mask-image: radial-gradient(circle at 50% 50%, black 58%, transparent 88%);
+  }
+
+  .hero-globe-spin {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: 50%;
+    animation: hero-globe-spin 48s linear infinite;
+  }
+
+  .hero-globe-layer {
+    object-fit: cover;
+  }
+
+  .hero-globe-seam {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: 50%;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      black 0%,
+      black 48%,
+      transparent 52%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      black 0%,
+      black 48%,
+      transparent 52%,
+      transparent 100%
+    );
+  }
+
+  .hero-globe-walker {
+    position: absolute;
+    top: 6%;
+    left: 50%;
+    z-index: 2;
+    width: 5rem;
+    height: 5rem;
+    transform: translateX(-50%);
+  }
+
+  .hero-globe-walker-frame {
+    position: absolute;
+    inset: 0;
+    animation-duration: 2.8s;
+    animation-timing-function: steps(1);
+    animation-iteration-count: infinite;
+  }
+
+  .ryan-walk-1 {
+    animation-name: ryan-walk-1;
+  }
+
+  .ryan-walk-2 {
+    animation-name: ryan-walk-2;
+  }
+
+  .ryan-walk-3 {
+    animation-name: ryan-walk-3;
+  }
+
+  .hero-text-cycle {
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-height: clamp(7rem, 16vw, 12rem);
+    align-items: center;
+    justify-content: center;
+    padding: 0 1.5rem;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .hero-text-cycle-item {
+    position: absolute;
+    max-width: 48rem;
+    margin: 0;
+    font-size: clamp(2.5rem, 6vw, 5.5rem);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: var(--foreground);
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+    filter: blur(6px);
+    transform: translateX(-1.5rem);
+    animation-duration: 21s;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    will-change: opacity, filter, transform, clip-path;
+  }
+
+  .hero-text-cycle-1 {
+    animation-name: hero-text-1;
+  }
+
+  .hero-text-cycle-2 {
+    animation-name: hero-text-2;
+  }
+
+  .hero-text-cycle-3 {
+    animation-name: hero-text-3;
+  }
+
   .hero-phone {
     width: min(100%, 22rem);
     transform: rotate(1.5deg);
@@ -439,6 +659,210 @@
     @apply mt-3 flex items-center justify-between rounded-lg px-3 py-2.5 font-semibold;
     background: var(--whatsapp-deep);
     color: white;
+  }
+
+  .ticket-notch {
+    --notch: 16px;
+    --notch-stroke: 2px;
+    background-image:
+      radial-gradient(circle calc(var(--notch) + var(--notch-stroke)) at 0 0, transparent var(--notch), var(--border) var(--notch), var(--border) calc(var(--notch) + var(--notch-stroke)), transparent calc(var(--notch) + var(--notch-stroke))),
+      radial-gradient(circle calc(var(--notch) + var(--notch-stroke)) at 100% 0, transparent var(--notch), var(--border) var(--notch), var(--border) calc(var(--notch) + var(--notch-stroke)), transparent calc(var(--notch) + var(--notch-stroke))),
+      radial-gradient(circle calc(var(--notch) + var(--notch-stroke)) at 0 100%, transparent var(--notch), var(--border) var(--notch), var(--border) calc(var(--notch) + var(--notch-stroke)), transparent calc(var(--notch) + var(--notch-stroke))),
+      radial-gradient(circle calc(var(--notch) + var(--notch-stroke)) at 100% 100%, transparent var(--notch), var(--border) var(--notch), var(--border) calc(var(--notch) + var(--notch-stroke)), transparent calc(var(--notch) + var(--notch-stroke)));
+    mask-image:
+      radial-gradient(circle var(--notch) at 0 0, transparent calc(var(--notch) - 0.5px), black var(--notch)),
+      radial-gradient(circle var(--notch) at 100% 0, transparent calc(var(--notch) - 0.5px), black var(--notch)),
+      radial-gradient(circle var(--notch) at 0 100%, transparent calc(var(--notch) - 0.5px), black var(--notch)),
+      radial-gradient(circle var(--notch) at 100% 100%, transparent calc(var(--notch) - 0.5px), black var(--notch));
+    mask-composite: intersect;
+    -webkit-mask-image:
+      radial-gradient(circle var(--notch) at 0 0, transparent calc(var(--notch) - 0.5px), black var(--notch)),
+      radial-gradient(circle var(--notch) at 100% 0, transparent calc(var(--notch) - 0.5px), black var(--notch)),
+      radial-gradient(circle var(--notch) at 0 100%, transparent calc(var(--notch) - 0.5px), black var(--notch)),
+      radial-gradient(circle var(--notch) at 100% 100%, transparent calc(var(--notch) - 0.5px), black var(--notch));
+    -webkit-mask-composite: source-in, source-in, source-in;
+  }
+
+  .ticket-skeleton::after {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(
+      100deg,
+      transparent 30%,
+      color-mix(in oklch, white 70%, transparent) 50%,
+      transparent 70%
+    );
+    background-size: 220% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    content: "";
+  }
+}
+
+@keyframes hero-globe-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes ryan-walk-1 {
+  0% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes ryan-walk-2 {
+  0% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes ryan-walk-3 {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hero-text-1 {
+  0% {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+    filter: blur(6px);
+    transform: translateX(-1.5rem);
+  }
+  1.43% {
+    opacity: 1;
+  }
+  4.76% {
+    clip-path: inset(0 0 0 0);
+    filter: blur(0);
+    transform: translateX(0);
+  }
+  28.57% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    filter: blur(0);
+    transform: translateX(0);
+  }
+  33.33% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+    filter: blur(6px);
+    transform: translateX(-1.5rem);
+  }
+}
+
+@keyframes hero-text-2 {
+  0% {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+    filter: blur(6px);
+    transform: translateX(-1.5rem);
+  }
+  33.33% {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+    filter: blur(6px);
+    transform: translateX(-1.5rem);
+  }
+  34.76% {
+    opacity: 1;
+  }
+  38.09% {
+    clip-path: inset(0 0 0 0);
+    filter: blur(0);
+    transform: translateX(0);
+  }
+  61.9% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    filter: blur(0);
+    transform: translateX(0);
+  }
+  66.67% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+    filter: blur(6px);
+    transform: translateX(-1.5rem);
+  }
+}
+
+@keyframes hero-text-3 {
+  0% {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+    filter: blur(6px);
+    transform: translateX(-1.5rem);
+  }
+  66.67% {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+    filter: blur(6px);
+    transform: translateX(-1.5rem);
+  }
+  68.1% {
+    opacity: 1;
+  }
+  71.43% {
+    clip-path: inset(0 0 0 0);
+    filter: blur(0);
+    transform: translateX(0);
+  }
+  95.24% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    filter: blur(0);
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+    filter: blur(6px);
+    transform: translateX(-1.5rem);
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 140% 0;
+  }
+  100% {
+    background-position: -40% 0;
   }
 }
 

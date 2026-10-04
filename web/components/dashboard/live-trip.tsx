@@ -81,8 +81,8 @@ export function LiveTrip({ groupId, embed = false }: { groupId: string; embed?: 
   return <div>
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
-        {!embed && <p className="mb-2 flex items-center gap-2 text-xs font-medium tracking-widest text-primary uppercase"><IconBrandWhatsapp className="size-4" />{trip.group_name}</p>}
         <h1 className={embed ? "text-2xl font-semibold tracking-tight" : "text-4xl font-semibold tracking-[-0.04em]"}>{embed ? "Shared plan · WhatsApp" : trip.destination || "Trip in progress"}</h1>
+        {!embed && <p className="mt-2 flex items-center gap-2 text-xs font-medium tracking-widest text-primary uppercase"><IconBrandWhatsapp className="size-4" />{trip.group_name}</p>}
         <p className="mt-2 text-sm text-muted-foreground">{[trip.dates, trip.origin && `from ${trip.origin}`, trip.state].filter(Boolean).join(" · ")}</p>
       </div>
       <label className="text-xs text-muted-foreground">You are

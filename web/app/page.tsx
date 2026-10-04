@@ -58,6 +58,12 @@ const destinations = [
   },
 ]
 
+const heroPhrases = [
+  "Plan the group trip inside WhatsApp.",
+  "No one becomes the trip spreadsheet.",
+  "Different people. One place that works.",
+]
+
 const approvals = [
   ["Mark", "Flight option", "Looks good"],
   ["Kevin", "Ebisu stay", "Under my cap"],
@@ -74,12 +80,12 @@ export default function Page() {
         >
           <a
             href="#top"
-            className="flex min-h-11 items-center gap-2 text-lg font-semibold tracking-tight text-white outline-none focus-visible:ring-3 focus-visible:ring-white/70"
+            className="flex min-h-11 items-center gap-2 text-lg font-semibold tracking-tight text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <Compass aria-hidden="true" className="size-5" strokeWidth={1.8} />
             Fare
           </a>
-          <div className="hidden items-center gap-7 text-sm text-white/82 md:flex">
+          <div className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
             <a className="nav-link" href="#how-it-works">
               How it works
             </a>
@@ -93,7 +99,7 @@ export default function Page() {
           <Button
             render={<a href="/dashboard" />}
             nativeButton={false}
-            className="h-10 bg-white px-4 text-forest hover:bg-white/90"
+            className="h-10 bg-forest px-4 text-primary-foreground hover:bg-forest/90"
           >
             Open dashboard
           </Button>
@@ -101,125 +107,79 @@ export default function Page() {
       </header>
 
       <section id="top" className="relative min-h-[100dvh] overflow-hidden">
-        <Image
-          src="/images/hero-japan-cove.png"
-          alt="A secluded tropical cove with turquoise water at sunset"
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center"
-        />
-        <div className="hero-shade absolute inset-0" />
-        <div className="relative mx-auto grid min-h-[100dvh] max-w-[1200px] items-center px-4 pt-18 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)] lg:gap-12 lg:px-10">
-          <Reveal className="max-w-2xl py-20 text-white">
-            <RevealItem>
-              <p className="mb-4 text-sm font-medium tracking-[0.16em] text-white/68 uppercase">
-                Fare lives in WhatsApp
-              </p>
-            </RevealItem>
-            <RevealItem>
-              <h1 className="max-w-[14ch] text-5xl leading-[1.01] font-semibold tracking-[-0.055em] sm:text-6xl lg:text-7xl">
-                Plan the group trip inside WhatsApp.
-              </h1>
-            </RevealItem>
-            <RevealItem>
-              <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/80">
-                Fare reads each person&apos;s dates, budget, and preferences,
-                then brings one best-fit trip back to the chat.
-              </p>
-            </RevealItem>
-            <RevealItem className="mt-7 flex flex-wrap gap-3">
-              <Button
-                render={<a href="#how-it-works" />}
-                nativeButton={false}
-                size="lg"
-                className="h-12 bg-sun px-5 text-forest hover:bg-sun/90"
-              >
-                Follow the chat
-                <ArrowRight data-icon="inline-end" strokeWidth={1.8} />
-              </Button>
-              <Button
-                render={<a href="#destinations" />}
-                nativeButton={false}
-                size="lg"
-                variant="outline"
-                className="h-12 border-white/35 bg-white/10 px-5 text-white backdrop-blur-md hover:bg-white/18 hover:text-white"
-              >
-                See trip ideas
-              </Button>
-            </RevealItem>
-          </Reveal>
-
-          <div className="hidden justify-end lg:flex">
-            <div
-              className="whatsapp-phone hero-phone"
-              aria-label="Fare planning a Tokyo trip inside WhatsApp"
-            >
-              <div className="dynamic-island" aria-hidden="true">
-                <span />
-              </div>
-              <div className="whatsapp-header">
-                <span className="grid size-10 place-items-center rounded-full bg-white/12">
-                  <Compass
-                    className="size-5"
-                    strokeWidth={1.7}
-                    aria-hidden="true"
-                  />
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">Tokyo crew</p>
-                  <p className="truncate text-xs text-white/72">
-                    Mark, Kevin, Sarah, Fare
-                  </p>
-                </div>
-              </div>
-              <div className="whatsapp-viewport">
-                <div className="whatsapp-track">
-                  <p className="chat-date">Today</p>
-                  <div className="message-row message-in">
-                    <span className="message-author">Mark</span>
-                    <p>Tokyo in December. Keep it near $1,800.</p>
-                    <span className="message-time">9:12</span>
-                  </div>
-                  <div className="message-row message-in">
-                    <span className="message-author">Sarah</span>
-                    <p>Good nightlife, but somewhere quiet to sleep.</p>
-                    <span className="message-time">9:14</span>
-                  </div>
-                  <div className="message-row message-out">
-                    <p>
-                      <strong>@fare</strong> plan our trip
-                    </p>
-                    <span className="message-time">9:15</span>
-                  </div>
-                  <div className="message-row message-fare">
-                    <span className="message-author">Fare</span>
-                    <p>I found a seven-night overlap and one best-fit plan.</p>
-                    <span className="message-time">9:16</span>
-                  </div>
-                  <div className="result-card">
-                    <div className="result-icon">
-                      <Plane
-                        className="size-4"
-                        strokeWidth={1.7}
-                        aria-hidden="true"
-                      />
-                    </div>
-                    <div>
-                      <p className="result-label">Best group option</p>
-                      <p className="result-title">Vancouver to Tokyo</p>
-                      <p className="result-meta">Dec 17 to 24 · bags included</p>
-                    </div>
-                    <Check
-                      className="ml-auto size-4 text-whatsapp"
-                      strokeWidth={2}
-                      aria-hidden="true"
-                    />
-                  </div>
-                </div>
-              </div>
-              <span className="iphone-home-indicator" aria-hidden="true" />
+        <div className="hero-glow" aria-hidden="true" />
+        <div className="hero-globe" aria-hidden="true">
+          <div className="hero-globe-spin">
+            <Image
+              src="/images/paper_ball.png"
+              alt=""
+              fill
+              sizes="94vw"
+              className="hero-globe-layer"
+            />
+          </div>
+          <div className="hero-globe-seam">
+            <div className="hero-globe-spin">
+              <Image
+                src="/images/earth_ball.png"
+                alt=""
+                fill
+                sizes="94vw"
+                className="hero-globe-layer"
+              />
             </div>
+          </div>
+          <div className="hero-globe-walker">
+            <div className="hero-globe-walker-frame ryan-walk-1">
+              <Image src="/images/ryanWalk1.svg" alt="" fill className="object-contain" />
+            </div>
+            <div className="hero-globe-walker-frame ryan-walk-2">
+              <Image src="/images/ryanWalk2.svg" alt="" fill className="object-contain" />
+            </div>
+            <div className="hero-globe-walker-frame ryan-walk-3">
+              <Image src="/images/ryanWalk3.svg" alt="" fill className="object-contain" />
+            </div>
+          </div>
+        </div>
+
+        <h1 className="sr-only">{heroPhrases[0]}</h1>
+        <div className="hero-content">
+          <div className="hero-text-cycle" aria-hidden="true">
+            <p className="hero-text-cycle-item hero-text-cycle-1">
+              {heroPhrases[0]}
+            </p>
+            <p className="hero-text-cycle-item hero-text-cycle-2">
+              {heroPhrases[1]}
+            </p>
+            <p className="hero-text-cycle-item hero-text-cycle-3">
+              {heroPhrases[2]}
+            </p>
+          </div>
+
+          <p className="hero-subline">
+            Fare reads each person&apos;s dates, budget, and preferences, then
+            brings one best-fit trip back to the chat.
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Button
+              render={<a href="#how-it-works" />}
+              nativeButton={false}
+              size="lg"
+              className="h-12 bg-sun px-5 text-forest hover:bg-sun/90"
+            >
+              Follow the chat
+              <ArrowRight data-icon="inline-end" strokeWidth={1.8} />
+            </Button>
+            <Button
+              render={<a href="#destinations" />}
+              nativeButton={false}
+              size="lg"
+              variant="outline"
+              className="h-12 border-border bg-card/70 px-5 text-foreground backdrop-blur-md hover:bg-card"
+            >
+              See trip ideas
+            </Button>
           </div>
         </div>
       </section>
