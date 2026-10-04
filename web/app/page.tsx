@@ -2,7 +2,6 @@ import Image from "next/image"
 import {
   IconArrowRight as ArrowRight,
   IconCheck as Check,
-  IconCompass as Compass,
   IconCurrencyDollar as CircleDollarSign,
   IconMapPin as MapPin,
   IconPlane as Plane,
@@ -59,9 +58,9 @@ const destinations = [
 ]
 
 const heroPhrases = [
-  "Plan the group trip inside WhatsApp.",
-  "No one becomes the trip spreadsheet.",
-  "Different people. One place that works.",
+  "Your personal trip planner",
+  "Settle everything once",
+  "Make it out of the group chat",
 ]
 
 const approvals = [
@@ -75,18 +74,11 @@ export default function Page() {
     <main className="overflow-clip bg-background text-foreground">
       <div className="relative bg-forest p-5 sm:p-7">
       <div className="relative overflow-hidden rounded-[1.75rem] bg-background sm:rounded-[2.25rem]">
-      <header className="absolute inset-x-0 top-0 z-20 h-18">
+      <header className="absolute inset-x-0 top-0 z-20 h-20 md:h-32">
         <nav
           aria-label="Primary navigation"
-          className="mx-auto flex h-full max-w-[1400px] items-center justify-between px-4 sm:px-6 lg:px-10"
+          className="relative mx-auto flex h-full max-w-[1400px] items-center justify-between px-4 sm:px-6 lg:px-10"
         >
-          <a
-            href="#top"
-            className="flex min-h-11 items-center gap-2 text-lg font-semibold tracking-tight text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            <Compass aria-hidden="true" className="size-5" strokeWidth={1.8} />
-            Fare
-          </a>
           <div className="hidden items-center gap-7 text-sm text-muted-foreground md:flex">
             <a className="nav-link" href="#how-it-works">
               How it works
@@ -98,6 +90,19 @@ export default function Page() {
               Destinations
             </a>
           </div>
+          <a
+            href="#top"
+            className="flex min-h-11 items-center outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:absolute md:left-1/2 md:-translate-x-1/2"
+          >
+            <Image
+              src="/images/fareLogo.png"
+              alt="Fare"
+              width={112}
+              height={78}
+              className="h-11 w-auto md:h-24"
+              priority
+            />
+          </a>
           <Button
             render={<a href="/dashboard" />}
             nativeButton={false}
@@ -542,10 +547,15 @@ export default function Page() {
         <div className="mx-auto flex max-w-[1400px] flex-col gap-5 border-t border-border pt-7 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <a
             href="#top"
-            className="flex min-h-11 items-center gap-2 font-semibold text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="flex min-h-11 items-center outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
-            <Compass aria-hidden="true" className="size-4" strokeWidth={1.8} />
-            Fare
+            <Image
+              src="/images/fareLogo.png"
+              alt="Fare"
+              width={112}
+              height={78}
+              className="h-7 w-auto"
+            />
           </a>
           <p>Plan together. Go somewhere good.</p>
           <div className="flex gap-5">
