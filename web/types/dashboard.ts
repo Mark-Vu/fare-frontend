@@ -36,6 +36,7 @@ export type SessionSnapshot = {
   hotel: StepStatus
   planning: StepStatus
   planningTasks: Record<PlanningTaskId, StepStatus>
+  planningTaskMessages?: Partial<Record<PlanningTaskId, string>>
   flightMessage: string
   hotelMessage: string
   flights: Flight[]
@@ -46,5 +47,5 @@ export type SessionSnapshot = {
   previews: Record<SearchAgent, Record<string, BrowserPreview>>
   recordings?: Partial<Record<SearchAgent, SearchRecording>>
 }
-export type DashboardEvent = { version: 1; type: string; groupId: string; revision?: number; sessionId?: string; session?: TripSession; snapshot?: SessionSnapshot; sessions?: SessionSnapshot[]; agentType?: SearchAgent; event?: TravelSearchEvent; message?: string }
+export type DashboardEvent = { version: 1; type: string; groupId: string; revision?: number; timestamp?: string; sessionId?: string; session?: TripSession; snapshot?: SessionSnapshot; sessions?: SessionSnapshot[]; agentType?: SearchAgent; event?: TravelSearchEvent; message?: string; taskId?: PlanningTaskId; status?: StepStatus; plan?: FinalPlan }
 export type ConnectionStatus = "connecting" | "connected" | "reconnecting"

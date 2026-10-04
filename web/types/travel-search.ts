@@ -7,9 +7,9 @@ type Envelope = { version: 1; session_id: string | null; search_id: string | nul
 export type TravelSearchEvent = Envelope & (
   | { type: "search.status"; status: string; origin?: string; error?: SearchError | null }
   | { type: "browser.live_view"; browser_session_id: string; url: string | null; origin?: string; website?: string }
-  | { type: "browser.stream"; origin: string; browser_session_id: string; status: "starting" | "live" | "ended" | "unavailable" }
-  | { type: "browser.frame"; origin: string; browser_session_id: string; mime_type: "image/jpeg"; data: string }
+  | { type: "browser.stream"; origin: string; website?: string; browser_session_id: string; status: "starting" | "live" | "ended" | "unavailable" }
+  | { type: "browser.frame"; origin: string; website?: string; browser_session_id: string; mime_type: "image/jpeg"; data: string }
   | { type: "search.result"; result: FlightRecord | HotelRecord }
   | { type: "search.error"; error: SearchError }
 )
-export type BrowserPreview = { browserSessionId: string; src?: string; liveViewUrl?: string; status: "starting" | "live" | "ended" | "unavailable" | "disconnected" }
+export type BrowserPreview = { browserSessionId: string; website?: string; origin?: string; src?: string; liveViewUrl?: string; status: "starting" | "live" | "ended" | "unavailable" | "disconnected" }
