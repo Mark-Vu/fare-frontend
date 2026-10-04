@@ -101,16 +101,37 @@ function alignOffers<T extends { offer_id: string }>(incoming: T[] | undefined, 
   })
 }
 
+function messageKey(msg: { id?: string; at: string; sender: string; text: string }) {
+  return `${msg.id || ""}|${msg.at}|${msg.sender}|${msg.text}`
+}
+
+function mergeMessages(current: TripView["messages"] | undefined, next: TripView["messages"] | undefined) {
+  const server = next ?? []
+  const echoed = new Set(server.filter(msg => !msg.bot).map(msg => msg.text))
+  const pending = (current ?? []).filter(msg => msg.id?.startsWith("local-") && !echoed.has(msg.text))
+  const seen = new Set<string>()
+  const rows = []
+  for (const msg of [...server, ...pending]) {
+    const key = messageKey(msg)
+    if (seen.has(key)) continue
+    seen.add(key)
+    rows.push(msg)
+  }
+  return rows.sort((a, b) => Date.parse(a.at) - Date.parse(b.at))
+}
+
 function acceptSaved(current: TripView | null, next: TripView): TripView {
   if (!current) return next
-  return { ...next, flights: alignOffers(next.flights, current.flights), hotels: alignOffers(next.hotels, current.hotels) }
+  return { ...next, messages: mergeMessages(current.messages, next.messages), flights: alignOffers(next.flights, current.flights), hotels: alignOffers(next.hotels, current.hotels) }
 }
 
 function mergeTrip(current: TripView | null, next: TripView): TripView {
   if (!current || current.group_id !== next.group_id) return next
-  if (current.current_session_id === next.current_session_id && (current.itinerary_revision ?? 0) > (next.itinerary_revision ?? 0)) return current
-  if (Date.parse(next.updated_at) < Date.parse(current.updated_at)) return current
-  return { ...next, flights: alignOffers(next.flights, current.flights), hotels: alignOffers(next.hotels, current.hotels) }
+  const messages = mergeMessages(current.messages, next.messages)
+  const older = Date.parse(next.updated_at) < Date.parse(current.updated_at)
+  const olderRevision = current.current_session_id === next.current_session_id && (current.itinerary_revision ?? 0) > (next.itinerary_revision ?? 0)
+  if (older || olderRevision) return { ...current, messages }
+  return { ...next, messages, flights: alignOffers(next.flights, current.flights), hotels: alignOffers(next.hotels, current.hotels) }
 }
 
 function showSelection(trip: TripView, action: string, offerId: string): TripView {
@@ -148,6 +169,8 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
   const [chat, setChat] = useState("")
   const [quote, setQuote] = useState<SessionSnapshot | null>(null)
   const selectGeneration = useRef(0)
+  const transcript = useRef<HTMLDivElement>(null)
+  const stickToLatest = useRef(true)
 
   useEffect(() => {
     const saved = localStorage.getItem(`fare-actor:${groupId}`) || ""
@@ -188,12 +211,40 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
 
   const names = useMemo(() => trip?.people?.map(p => p.name).filter(Boolean) ?? [], [trip])
 
+  useEffect(() => {
+    const el = transcript.current
+    if (tab !== "Chat" || !el || !stickToLatest.current) return
+    el.scrollTop = el.scrollHeight
+  }, [tab, trip?.messages?.length])
+
+  useEffect(() => {
+    const el = transcript.current
+    if (!el || tab !== "Chat") return
+    const onWheel = (event: WheelEvent) => {
+      const max = el.scrollHeight - el.clientHeight
+      if (max <= 0) return
+      const next = Math.min(max, Math.max(0, el.scrollTop + event.deltaY))
+      if (next === el.scrollTop) return
+      el.scrollTop = next
+      stickToLatest.current = max - next < 80
+      event.preventDefault()
+      event.stopPropagation()
+    }
+    el.addEventListener("wheel", onWheel, { passive: false })
+    return () => el.removeEventListener("wheel", onWheel)
+  }, [tab])
+
   async function run(body: Record<string, string>) {
     const selecting = (body.action === "select_flight" || body.action === "select_hotel") && !!body.offer_id
+    const chatting = body.action === "chat" && !!body.text
     const generation = selecting ? ++selectGeneration.current : 0
     const previous = trip
     if (selecting && trip) setTrip(showSelection(trip, body.action, body.offer_id))
-    else setBusy(true)
+    else if (chatting && trip) {
+      stickToLatest.current = true
+      const text = body.text
+      setTrip(current => current ? { ...current, messages: [...(current.messages ?? []), { id: `local-${Date.now()}`, sender: actor || "You", text, bot: false, at: new Date().toISOString() }] } : current)
+    } else setBusy(true)
     setError(null)
     try {
       const next = await actOnTrip(groupId, { actor: actor || "Someone", ...body })
@@ -202,9 +253,13 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
     } catch (err) {
       if (selecting && generation !== selectGeneration.current) return
       if (selecting && previous) setTrip(previous)
+      if (chatting) {
+        setTrip(current => current ? { ...current, messages: (current.messages ?? []).filter(msg => !(msg.id?.startsWith("local-") && msg.text === body.text)) } : current)
+        setChat(body.text)
+      }
       setError(err instanceof Error ? err.message : "That didn’t go through.")
     } finally {
-      if (!selecting) setBusy(false)
+      if (!selecting && !chatting) setBusy(false)
     }
   }
 
@@ -322,12 +377,14 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
     </div>}
 
     {tab === "Chat" && <section className="mt-6 flex h-[32rem] flex-col overflow-hidden rounded-2xl border border-border bg-card">
-      <div className="flex-1 space-y-3 overflow-y-auto p-4">
+      <div ref={transcript} onScroll={e => { const el = e.currentTarget; stickToLatest.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80 }} className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4">
+        {(trip.messages ?? []).length === 0 && <p className="text-sm text-muted-foreground">Messages from the WhatsApp group show up here.</p>}
         {(trip.messages ?? []).map((msg, i) => <div key={`${msg.id || msg.at}-${i}`} className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${msg.bot ? "bg-secondary" : "ml-auto bg-whatsapp/15"}`}><p className="text-xs font-medium text-muted-foreground">{msg.sender} · {when(msg.at)}</p><p className="mt-1 whitespace-pre-wrap leading-6">{msg.text}</p></div>)}
       </div>
+      {error && <p role="alert" className="border-t border-border px-4 py-2 text-sm text-destructive">{error}</p>}
       <form className="flex gap-2 border-t border-border p-3" onSubmit={e => { e.preventDefault(); const text = chat.trim(); if (!text) return; setChat(""); void run({ action: "chat", text }) }}>
         <input value={chat} onChange={e => setChat(e.target.value)} placeholder="Message Fare — it also lands in the WhatsApp group" className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm" />
-        <button disabled={busy || !chat.trim()} aria-label="Send" className="grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground"><IconSend className="size-4" /></button>
+        <button type="submit" disabled={!chat.trim()} aria-label="Send" className="grid size-10 cursor-pointer place-items-center rounded-xl bg-primary text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"><IconSend className="size-4" /></button>
       </form>
     </section>}
   </div>

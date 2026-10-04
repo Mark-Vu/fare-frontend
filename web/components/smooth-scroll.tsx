@@ -18,7 +18,7 @@ export function SmoothScroll({ children }: { children: React.ReactNode }) {
       content: contentRef.current!,
       smooth: 1.2,
       smoothTouch: 0.1,
-      normalizeScroll: true,
+      normalizeScroll: { allowNestedScroll: true, debounce: true },
       effects: false,
     })
     return () => smoother.kill()
