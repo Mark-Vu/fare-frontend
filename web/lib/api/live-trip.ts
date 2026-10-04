@@ -1,3 +1,4 @@
+import type { ItineraryActivity } from "@/types/session"
 import { orchestratorUrl } from "./group-socket"
 
 export type TripCard = {
@@ -25,6 +26,12 @@ export type TripView = {
   group_name: string
   state: string
   editable: boolean
+  current_session_id?: string
+  itinerary_revision?: number
+  can_undo_activity_edit?: boolean
+  notification_warning?: string
+  flight_reason?: string
+  hotel_reason?: string
   destination: string
   origin: string
   dates: string
@@ -46,10 +53,10 @@ export type TripView = {
   }
   owes: { from: string; to: string; amount: number }[]
   people: TripPerson[]
-  days: { title: string; body: string; food_cad: number | null }[]
+  days: { date?: string; activities?: ItineraryActivity[]; title: string; body: string; food_cad: number | null }[]
   places: { name: string; neighborhood: string; why: string; dish: string; est_cad: number | null; map: string }[]
-  flights: { offer_id: string; airline: string; origin: string; destination: string; summary: string; price: number; selected: boolean; source?: string }[]
-  hotels: { offer_id: string; name: string; city: string; nightly: number; total: number; rating: number | null; image: string; selected: boolean; source?: string; property_type?: string; original_rating?: number | null; original_rating_scale?: number | null; price_note?: string | null; checkout_url?: string }[]
+  flights: { offer_id: string; airline: string; origin: string; destination: string; summary: string; price: number; selected: boolean; reason?: string; source?: string }[]
+  hotels: { offer_id: string; name: string; city: string; nightly: number; total: number; rating: number | null; image: string; selected: boolean; reason?: string; source?: string; property_type?: string; original_rating?: number | null; original_rating_scale?: number | null; price_note?: string | null; checkout_url?: string }[]
   messages: { id: string; sender: string; text: string; bot: boolean; at: string }[]
 }
 
@@ -74,12 +81,18 @@ export async function getTrip(groupId: string, signal?: AbortSignal) {
   return response.json() as Promise<TripView>
 }
 
+export class TripActionError extends Error {
+  constructor(message: string, public status: number) {
+    super(message)
+  }
+}
+
 export async function actOnTrip(groupId: string, body: Record<string, string>) {
   const response = await fetch(`${orchestratorUrl}/dashboard/trips/${encodeURIComponent(groupId)}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   })
-  if (!response.ok) throw new Error(await readError(response))
+  if (!response.ok) throw new TripActionError(await readError(response), response.status)
   return response.json() as Promise<TripView>
 }

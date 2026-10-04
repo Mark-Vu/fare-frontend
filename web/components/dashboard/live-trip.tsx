@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { IconBrandWhatsapp, IconMapPin, IconSend } from "@tabler/icons-react"
 import { actOnTrip, getTrip, type TripView } from "@/lib/api/live-trip"
+import { ActivityEditor, useItineraryEdits } from "@/components/session/activity-editor"
 import { travelSourceLabel } from "@/lib/travel-source-label"
 
 const tabs = ["Itinerary", "Money", "Flights & stays", "Chat"] as const
@@ -20,7 +21,14 @@ function when(iso: string) {
   return d.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
 }
 
-export function LiveTrip({ groupId, embed = false }: { groupId: string; embed?: boolean }) {
+function mergeTrip(current: TripView | null, next: TripView): TripView {
+  if (!current || current.group_id !== next.group_id) return next
+  if (current.current_session_id === next.current_session_id && (current.itinerary_revision ?? 0) > (next.itinerary_revision ?? 0)) return current
+  if (Date.parse(next.updated_at) < Date.parse(current.updated_at)) return current
+  return next
+}
+
+export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: string; embed?: boolean; sessionId?: string }) {
   const [trip, setTrip] = useState<TripView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -42,7 +50,7 @@ export function LiveTrip({ groupId, embed = false }: { groupId: string; embed?: 
       try {
         const next = await getTrip(groupId, controller.signal)
         if (!stop) {
-          setTrip(next)
+          setTrip(current => mergeTrip(current, next))
           setError(null)
           setBudget(current => current || next.budget_note || "")
         }
@@ -55,6 +63,9 @@ export function LiveTrip({ groupId, embed = false }: { groupId: string; embed?: 
     return () => { stop = true; controller.abort(); clearInterval(timer) }
   }, [groupId])
 
+  const itineraryEdits = useItineraryEdits(groupId, next => setTrip(current => mergeTrip(current, next)), sessionId)
+  const itineraryEditable = !!trip?.editable && (!sessionId || trip.current_session_id === sessionId)
+
   const names = useMemo(() => trip?.people?.map(p => p.name).filter(Boolean) ?? [], [trip])
 
   async function run(body: Record<string, string>) {
@@ -62,7 +73,7 @@ export function LiveTrip({ groupId, embed = false }: { groupId: string; embed?: 
     setError(null)
     try {
       const next = await actOnTrip(groupId, { actor: actor || "Someone", ...body })
-      setTrip(next)
+      setTrip(current => mergeTrip(current, next))
     } catch (err) {
       setError(err instanceof Error ? err.message : "That didn’t go through.")
     } finally {
@@ -101,11 +112,13 @@ export function LiveTrip({ groupId, embed = false }: { groupId: string; embed?: 
 
     {tab === "Itinerary" && <section className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
       <div className="space-y-3">
+        {itineraryEditable && trip.can_undo_activity_edit && <button type="button" disabled={itineraryEdits.busy} onClick={() => void itineraryEdits.undo(trip.itinerary_revision ?? 0)} className="rounded-full border border-border px-3 py-1.5 text-xs disabled:opacity-50">Undo last edit</button>}
+        {itineraryEdits.error && <p role="alert" className="text-sm text-destructive">{itineraryEdits.error}</p>}
         {(trip.days ?? []).length === 0 && <div className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">No day-by-day yet. Tag Fare in WhatsApp and ask for the plan — it will show up here.</div>}
-        {(trip.days ?? []).map((day, i) => <article key={`${day.title}-${i}`} className="rounded-2xl border border-border bg-card p-5"><h2 className="font-semibold">{day.title}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground whitespace-pre-wrap">{day.body}</p>{day.food_cad != null && <p className="mt-3 text-xs text-primary">Meals about {cad(day.food_cad)} each, not booked.</p>}</article>)}
+        {(trip.days ?? []).map((day, i) => <article key={`${day.title}-${i}`} className="rounded-2xl border border-border bg-card p-5"><h2 className="font-semibold">{day.title}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground whitespace-pre-wrap">{day.body}</p>{!!day.activities?.length && <ol className="mt-4 space-y-4">{day.activities.map((activity, index) => <li key={activity.id || index} className="flex gap-3 border-t border-border pt-4"><time className="w-12 shrink-0 text-xs text-primary">{activity.time}</time><div className="min-w-0 flex-1"><ActivityEditor activity={activity} revision={trip.itinerary_revision ?? 0} editable={itineraryEditable} busy={itineraryEdits.busy} onSave={itineraryEdits.save} /></div></li>)}</ol>}{day.food_cad != null && <p className="mt-3 text-xs text-primary">Meals about {cad(day.food_cad)} each, not booked.</p>}</article>)}
       </div>
       <aside className="space-y-3">
-        <div className="rounded-2xl bg-forest p-5 text-primary-foreground"><p className="text-xs tracking-widest uppercase text-sun">Stay</p><p className="mt-2 text-2xl font-semibold">{(trip.hotels ?? []).find(h => h.selected)?.name || "Not chosen"}</p><p className="mt-2 text-sm opacity-80">{trip.nights ? `${trip.nights} nights` : "Dates come from the chat"}</p></div>
+        <div className="rounded-2xl bg-forest p-5 text-primary-foreground"><p className="text-xs tracking-widest uppercase text-sun">Stay</p><p className="mt-2 text-2xl font-semibold">{(trip.hotels ?? []).find(h => h.selected)?.name || "Not chosen"}</p><p className="mt-2 text-sm opacity-80">{trip.nights ? `${trip.nights} nights` : "Dates come from the chat"}</p>{(trip.hotels ?? []).find(h => h.selected)?.reason && <p className="mt-3 text-xs leading-5 opacity-80">{(trip.hotels ?? []).find(h => h.selected)?.reason}</p>}</div>
         {(trip.places ?? []).map((place, i) => <a key={`${place.name}-${place.neighborhood}-${i}`} href={place.map} target="_blank" rel="noreferrer" className="block rounded-2xl border border-border bg-card p-4"><p className="flex items-center gap-2 font-medium"><IconMapPin className="size-4 text-primary" />{place.name}</p><p className="mt-1 text-xs text-muted-foreground">{place.neighborhood}</p><p className="mt-2 text-sm leading-5">{place.why}</p>{place.est_cad != null && <p className="mt-2 text-xs">{cad(place.est_cad)} a person, rough</p>}</a>)}
       </aside>
     </section>}
@@ -140,10 +153,10 @@ export function LiveTrip({ groupId, embed = false }: { groupId: string; embed?: 
 
     {tab === "Flights & stays" && <section className="mt-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Picks here update the shared trip and get announced in WhatsApp. Live Skyvern searches start from the group chat, not from this page.</p><button type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "chat", text: "show flight and hotel options on the dashboard" })} className="rounded-full bg-secondary px-4 py-2 text-sm">Ask Fare for options</button></div>
-      <div className="grid gap-3 md:grid-cols-3">{(trip.flights ?? []).map(flight => <button key={flight.offer_id} type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "select_flight", offer_id: flight.offer_id })} className={`rounded-2xl border p-4 text-left ${flight.selected ? "border-primary bg-secondary" : "border-border bg-card"}`}><p className="text-xs uppercase tracking-wide text-muted-foreground">{flight.selected ? "Chosen" : "Fare"}</p><p className="mt-2 font-semibold">{flight.airline || "Flight"}</p>{flight.source && <p className="mt-1 text-xs text-muted-foreground">{travelSourceLabel(flight.source)}</p>}<p className="text-sm">{flight.origin} → {flight.destination}</p><p className="mt-2 text-sm text-muted-foreground">{flight.summary}</p><p className="mt-3 font-medium">{cad(flight.price)} round trip each</p></button>)}</div>
+      <div className="grid gap-3 md:grid-cols-3">{(trip.flights ?? []).map(flight => <button key={flight.offer_id} type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "select_flight", offer_id: flight.offer_id })} className={`rounded-2xl border p-4 text-left ${flight.selected ? "border-primary bg-secondary" : "border-border bg-card"}`}><p className="text-xs uppercase tracking-wide text-muted-foreground">{flight.selected ? "Chosen" : "Fare"}</p><p className="mt-2 font-semibold">{flight.airline || "Flight"}</p>{flight.source && <p className="mt-1 text-xs text-muted-foreground">{travelSourceLabel(flight.source)}</p>}<p className="text-sm">{flight.origin} → {flight.destination}</p><p className="mt-2 text-sm text-muted-foreground">{flight.summary}</p><p className="mt-3 font-medium">{cad(flight.price)} round trip each</p>{flight.selected && flight.reason && <p className="mt-2 text-xs leading-5 text-muted-foreground">{flight.reason}</p>}</button>)}</div>
       <div className="grid gap-4 md:grid-cols-3">{(trip.hotels ?? []).map(hotel => <article key={hotel.offer_id} className={`overflow-hidden rounded-2xl border ${hotel.selected ? "border-primary" : "border-border"}`}>
         {hotel.image && <img src={hotel.image} alt="" className="h-36 w-full object-cover" />}
-        <div className="bg-card p-4"><p className="text-xs uppercase tracking-wide text-muted-foreground">{hotel.selected ? "Chosen stay" : hotel.city}</p><h3 className="mt-1 font-semibold">{hotel.name}</h3>{hotel.source && <p className="mt-1 text-xs text-muted-foreground">{hotel.source === "booking_com" ? "Booking.com" : hotel.source === "airbnb" ? "Airbnb" : hotel.source}{hotel.property_type ? ` · ${hotel.property_type}` : ""}</p>}<p className="mt-2 text-sm">{cad(hotel.nightly)} / night · {cad(hotel.total)} group{hotel.rating != null ? ` · ${hotel.original_rating ?? hotel.rating} / ${hotel.original_rating_scale ?? 10}` : ""}</p>{hotel.price_note && <p className="mt-2 text-xs text-muted-foreground">{hotel.price_note}</p>}<button type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "select_hotel", offer_id: hotel.offer_id })} className="mt-4 rounded-full bg-primary px-4 py-2 text-xs text-primary-foreground">Use this stay</button></div>
+        <div className="bg-card p-4"><p className="text-xs uppercase tracking-wide text-muted-foreground">{hotel.selected ? "Chosen stay" : hotel.city}</p><h3 className="mt-1 font-semibold">{hotel.name}</h3>{hotel.source && <p className="mt-1 text-xs text-muted-foreground">{hotel.source === "booking_com" ? "Booking.com" : hotel.source === "airbnb" ? "Airbnb" : hotel.source}{hotel.property_type ? ` · ${hotel.property_type}` : ""}</p>}<p className="mt-2 text-sm">{cad(hotel.nightly)} / night · {cad(hotel.total)} group{hotel.rating != null ? ` · ${hotel.original_rating ?? hotel.rating} / ${hotel.original_rating_scale ?? 10}` : ""}</p>{hotel.price_note && <p className="mt-2 text-xs text-muted-foreground">{hotel.price_note}</p>}{hotel.selected && hotel.reason && <p className="mt-2 text-xs leading-5 text-muted-foreground">{hotel.reason}</p>}<button type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "select_hotel", offer_id: hotel.offer_id })} className="mt-4 rounded-full bg-primary px-4 py-2 text-xs text-primary-foreground">Use this stay</button></div>
       </article>)}
       </div>
       <form className="rounded-2xl border border-border bg-card p-6" onSubmit={e => { e.preventDefault(); void run({ action: "save_traveler", name: traveler.name, legal_name: traveler.legal_name, date_of_birth: traveler.date_of_birth, passport_number: traveler.passport_number }).then(() => setTraveler(t => ({ ...t, passport_number: "" }))) }}>
