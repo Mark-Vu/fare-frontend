@@ -106,7 +106,7 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
           <p className="flex items-center gap-2 text-sm font-medium"><IconLoader2 aria-hidden="true" className="size-4 motion-safe:animate-spin" />Preparing your trip</p>
           <p className="mt-2 text-xs leading-5 text-muted-foreground">{session.message || "Bringing your flights, stay, and daily activities together."}</p>
         </div>}
-        {state.plan && <FinalPlan plan={state.plan} session={session} />}
+        {state.plan && <FinalPlan key={session.id} plan={state.plan} session={session} />}
       </FlowStep>
     </ol>
 
@@ -116,7 +116,7 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
     </details>
 
     <section className="mt-16 border-t border-border pt-10">
-      <LiveTrip groupId={session.groupId} embed />
+      <LiveTrip key={`${session.groupId}:${session.id}`} groupId={session.groupId} sessionId={session.id} embed />
     </section>
   </div>
 }

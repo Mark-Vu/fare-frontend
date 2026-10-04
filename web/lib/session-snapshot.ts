@@ -54,6 +54,9 @@ export function applySessionEvent(current: SessionSnapshot, event: DashboardEven
         next.session.status = "planning"
       }
       break
+    case "itinerary.updated":
+      next.plan = event.plan ?? current.plan
+      break
     case "planning.completed":
       next.planning = "completed"
       next.plan = event.plan ?? current.plan
