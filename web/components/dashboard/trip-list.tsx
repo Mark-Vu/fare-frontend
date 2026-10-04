@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { IconBrandWhatsapp, IconArrowRight } from "@tabler/icons-react"
 import { listTrips, type TripCard } from "@/lib/api/live-trip"
+import { groupPathId } from "@/lib/group-id"
 
 export function TripList() {
   const [trips, setTrips] = useState<TripCard[]>([])
@@ -24,7 +25,7 @@ export function TripList() {
     <p className="mt-4 max-w-xl text-muted-foreground">Add Fare to a WhatsApp group and tag it. That group becomes a dashboard. Nothing here creates a new session.</p>
     {error && <p role="alert" className="mt-6 text-sm text-destructive">{error}</p>}
     <div className="mt-8 grid gap-4 md:grid-cols-2">
-      {trips.map(trip => <Link key={trip.group_id} href={`/dashboard/${encodeURIComponent(trip.group_id)}`} className="rounded-2xl border border-border bg-card p-6 transition hover:border-primary">
+      {trips.map(trip => <Link key={trip.group_id} href={`/dashboard/${groupPathId(trip.group_id)}`} className="rounded-2xl border border-border bg-card p-6 transition hover:border-primary">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">{trip.state}</p>
         <h2 className="mt-2 text-2xl font-semibold">{trip.destination || trip.group_name}</h2>
         <p className="mt-2 text-sm text-muted-foreground">{trip.group_name}{trip.dates ? ` · ${trip.dates}` : ""}</p>

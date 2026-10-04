@@ -6,6 +6,7 @@ import { subscribeGroupSocket } from "@/lib/api/group-socket"
 import { mergeSessionSnapshot } from "@/lib/session-snapshot"
 import type { SessionSnapshot } from "@/types/dashboard"
 import { SessionDashboard } from "./session-dashboard"
+import { groupPathId } from "@/lib/group-id"
 
 export function SessionLoader({ groupId, sessionId }: { groupId: string; sessionId: string }) {
   const [snapshot, setSnapshot] = useState<SessionSnapshot | null>(null)
@@ -29,5 +30,5 @@ export function SessionLoader({ groupId, sessionId }: { groupId: string; session
     return () => { controller.abort(); unsubscribe() }
   }, [groupId, sessionId])
   if (snapshot) return <SessionDashboard key={sessionId} snapshot={snapshot} />
-  return <div className="mx-auto max-w-4xl rounded-2xl border border-border bg-card p-8"><p role="status" className="font-medium">{error ?? "Connecting to your planning session…"}</p><p className="mt-3 text-sm text-muted-foreground">{error ? "The dashboard will reconnect when your backend is available." : "Your group’s latest progress will appear here as soon as the connection opens."}</p><Link href={`/dashboard/${encodeURIComponent(groupId)}`} className="mt-5 inline-block text-sm text-primary">Back to group trips →</Link></div>
+  return <div className="mx-auto max-w-4xl rounded-2xl border border-border bg-card p-8"><p role="status" className="font-medium">{error ?? "Connecting to your planning session…"}</p><p className="mt-3 text-sm text-muted-foreground">{error ? "The dashboard will reconnect when your backend is available." : "Your group’s latest progress will appear here as soon as the connection opens."}</p><Link href={`/dashboard/${groupPathId(groupId)}`} className="mt-5 inline-block text-sm text-primary">Back to group trips →</Link></div>
 }

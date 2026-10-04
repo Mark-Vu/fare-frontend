@@ -54,7 +54,7 @@ export function LiveTrip({ groupId, embed = false }: { groupId: string; embed?: 
     return () => { stop = true; controller.abort(); clearInterval(timer) }
   }, [groupId])
 
-  const names = useMemo(() => trip?.people.map(p => p.name).filter(Boolean) ?? [], [trip])
+  const names = useMemo(() => trip?.people?.map(p => p.name).filter(Boolean) ?? [], [trip])
 
   async function run(body: Record<string, string>) {
     setBusy(true)
@@ -100,12 +100,12 @@ export function LiveTrip({ groupId, embed = false }: { groupId: string; embed?: 
 
     {tab === "Itinerary" && <section className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
       <div className="space-y-3">
-        {trip.days.length === 0 && <div className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">No day-by-day yet. Tag Fare in WhatsApp and ask for the plan — it will show up here.</div>}
-        {trip.days.map(day => <article key={day.title} className="rounded-2xl border border-border bg-card p-5"><h2 className="font-semibold">{day.title}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground whitespace-pre-wrap">{day.body}</p>{day.food_cad != null && <p className="mt-3 text-xs text-primary">Meals about {cad(day.food_cad)} each, not booked.</p>}</article>)}
+        {(trip.days ?? []).length === 0 && <div className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">No day-by-day yet. Tag Fare in WhatsApp and ask for the plan — it will show up here.</div>}
+        {(trip.days ?? []).map((day, i) => <article key={`${day.title}-${i}`} className="rounded-2xl border border-border bg-card p-5"><h2 className="font-semibold">{day.title}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground whitespace-pre-wrap">{day.body}</p>{day.food_cad != null && <p className="mt-3 text-xs text-primary">Meals about {cad(day.food_cad)} each, not booked.</p>}</article>)}
       </div>
       <aside className="space-y-3">
-        <div className="rounded-2xl bg-forest p-5 text-primary-foreground"><p className="text-xs tracking-widest uppercase text-sun">Stay</p><p className="mt-2 text-2xl font-semibold">{trip.hotels.find(h => h.selected)?.name || "Not chosen"}</p><p className="mt-2 text-sm opacity-80">{trip.nights ? `${trip.nights} nights` : "Dates come from the chat"}</p></div>
-        {trip.places.map(place => <a key={place.name} href={place.map} target="_blank" rel="noreferrer" className="block rounded-2xl border border-border bg-card p-4"><p className="flex items-center gap-2 font-medium"><IconMapPin className="size-4 text-primary" />{place.name}</p><p className="mt-1 text-xs text-muted-foreground">{place.neighborhood}</p><p className="mt-2 text-sm leading-5">{place.why}</p>{place.est_cad != null && <p className="mt-2 text-xs">{cad(place.est_cad)} a person, rough</p>}</a>)}
+        <div className="rounded-2xl bg-forest p-5 text-primary-foreground"><p className="text-xs tracking-widest uppercase text-sun">Stay</p><p className="mt-2 text-2xl font-semibold">{(trip.hotels ?? []).find(h => h.selected)?.name || "Not chosen"}</p><p className="mt-2 text-sm opacity-80">{trip.nights ? `${trip.nights} nights` : "Dates come from the chat"}</p></div>
+        {(trip.places ?? []).map((place, i) => <a key={`${place.name}-${place.neighborhood}-${i}`} href={place.map} target="_blank" rel="noreferrer" className="block rounded-2xl border border-border bg-card p-4"><p className="flex items-center gap-2 font-medium"><IconMapPin className="size-4 text-primary" />{place.name}</p><p className="mt-1 text-xs text-muted-foreground">{place.neighborhood}</p><p className="mt-2 text-sm leading-5">{place.why}</p>{place.est_cad != null && <p className="mt-2 text-xs">{cad(place.est_cad)} a person, rough</p>}</a>)}
       </aside>
     </section>}
 
@@ -126,7 +126,7 @@ export function LiveTrip({ groupId, embed = false }: { groupId: string; embed?: 
         <div className="rounded-2xl border border-border bg-card p-6">
           <h2 className="font-semibold">Who owes whom</h2>
           <p className="mt-1 text-sm text-muted-foreground">Card: {trip.payer_name || "not chosen"}</p>
-          <ul className="mt-4 space-y-2 text-sm">{trip.owes.length ? trip.owes.map(row => <li key={row.from}>{row.from} owes {row.to} {cad(row.amount)}</li>) : <li className="text-muted-foreground">Pick who is paying to split the locked quote.</li>}</ul>
+          <ul className="mt-4 space-y-2 text-sm">{(trip.owes ?? []).length ? trip.owes.map(row => <li key={row.from}>{row.from} owes {row.to} {cad(row.amount)}</li>) : <li className="text-muted-foreground">Pick who is paying to split the locked quote.</li>}</ul>
           <div className="mt-4 flex flex-wrap gap-2">{names.map(name => <button key={name} type="button" disabled={busy} onClick={() => run({ action: "set_payer", name })} className={`rounded-full px-3 py-1 text-xs ${trip.payer_name === name ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>{name}</button>)}</div>
         </div>
         <form className="rounded-2xl border border-border bg-card p-6" onSubmit={e => { e.preventDefault(); void run({ action: "set_budget", budget }) }}>
@@ -139,8 +139,8 @@ export function LiveTrip({ groupId, embed = false }: { groupId: string; embed?: 
 
     {tab === "Flights & stays" && <section className="mt-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Picks here update the shared trip and get announced in WhatsApp. Live Skyvern searches start from the group chat, not from this page.</p><button type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "chat", text: "show flight and hotel options on the dashboard" })} className="rounded-full bg-secondary px-4 py-2 text-sm">Ask Fare for options</button></div>
-      <div className="grid gap-3 md:grid-cols-3">{trip.flights.map(flight => <button key={flight.offer_id} type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "select_flight", offer_id: flight.offer_id })} className={`rounded-2xl border p-4 text-left ${flight.selected ? "border-primary bg-secondary" : "border-border bg-card"}`}><p className="text-xs uppercase tracking-wide text-muted-foreground">{flight.selected ? "Chosen" : "Fare"}</p><p className="mt-2 font-semibold">{flight.airline || "Flight"}</p><p className="text-sm">{flight.origin} → {flight.destination}</p><p className="mt-2 text-sm text-muted-foreground">{flight.summary}</p><p className="mt-3 font-medium">{cad(flight.price)} round trip each</p></button>)}</div>
-      <div className="grid gap-4 md:grid-cols-3">{trip.hotels.map(hotel => <article key={hotel.offer_id} className={`overflow-hidden rounded-2xl border ${hotel.selected ? "border-primary" : "border-border"}`}>
+      <div className="grid gap-3 md:grid-cols-3">{(trip.flights ?? []).map(flight => <button key={flight.offer_id} type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "select_flight", offer_id: flight.offer_id })} className={`rounded-2xl border p-4 text-left ${flight.selected ? "border-primary bg-secondary" : "border-border bg-card"}`}><p className="text-xs uppercase tracking-wide text-muted-foreground">{flight.selected ? "Chosen" : "Fare"}</p><p className="mt-2 font-semibold">{flight.airline || "Flight"}</p><p className="text-sm">{flight.origin} → {flight.destination}</p><p className="mt-2 text-sm text-muted-foreground">{flight.summary}</p><p className="mt-3 font-medium">{cad(flight.price)} round trip each</p></button>)}</div>
+      <div className="grid gap-4 md:grid-cols-3">{(trip.hotels ?? []).map(hotel => <article key={hotel.offer_id} className={`overflow-hidden rounded-2xl border ${hotel.selected ? "border-primary" : "border-border"}`}>
         {hotel.image && <img src={hotel.image} alt="" className="h-36 w-full object-cover" />}
         <div className="bg-card p-4"><p className="text-xs uppercase tracking-wide text-muted-foreground">{hotel.selected ? "Chosen stay" : hotel.city}</p><h3 className="mt-1 font-semibold">{hotel.name}</h3>{hotel.source && <p className="mt-1 text-xs text-muted-foreground">{hotel.source === "booking_com" ? "Booking.com" : hotel.source === "airbnb" ? "Airbnb" : hotel.source}{hotel.property_type ? ` · ${hotel.property_type}` : ""}</p>}<p className="mt-2 text-sm">{cad(hotel.nightly)} / night · {cad(hotel.total)} group{hotel.rating != null ? ` · ${hotel.original_rating ?? hotel.rating} / ${hotel.original_rating_scale ?? 10}` : ""}</p>{hotel.price_note && <p className="mt-2 text-xs text-muted-foreground">{hotel.price_note}</p>}<button type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "select_hotel", offer_id: hotel.offer_id })} className="mt-4 rounded-full bg-primary px-4 py-2 text-xs text-primary-foreground">Use this stay</button></div>
       </article>)}
@@ -154,14 +154,14 @@ export function LiveTrip({ groupId, embed = false }: { groupId: string; embed?: 
           <input type="date" className="rounded-xl border border-border bg-background px-3 py-2 text-sm" value={traveler.date_of_birth} onChange={e => setTraveler({ ...traveler, date_of_birth: e.target.value })} />
           <input placeholder="Passport number" autoComplete="off" className="rounded-xl border border-border bg-background px-3 py-2 text-sm" value={traveler.passport_number} onChange={e => setTraveler({ ...traveler, passport_number: e.target.value })} />
         </div>
-        <ul className="mt-4 space-y-1 text-xs text-muted-foreground">{trip.people.map(p => <li key={p.name}>{p.name}: {p.legal_name || "no legal name"}{p.has_passport ? ` · passport ••••${p.passport_last4}` : " · no passport yet"}{p.date_of_birth ? ` · ${p.date_of_birth}` : ""}</li>)}</ul>
+        <ul className="mt-4 space-y-1 text-xs text-muted-foreground">{(trip.people ?? []).map(p => <li key={p.name}>{p.name}: {p.legal_name || "no legal name"}{p.has_passport ? ` · passport ••••${p.passport_last4}` : " · no passport yet"}{p.date_of_birth ? ` · ${p.date_of_birth}` : ""}</li>)}</ul>
         <button disabled={busy} className="mt-4 rounded-full bg-primary px-4 py-2 text-sm text-primary-foreground">Save documents</button>
       </form>
     </section>}
 
     {tab === "Chat" && <section className="mt-6 flex h-[32rem] flex-col overflow-hidden rounded-2xl border border-border bg-card">
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
-        {trip.messages.map(msg => <div key={msg.id || msg.at + msg.text} className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${msg.bot ? "bg-secondary" : "ml-auto bg-whatsapp/15"}`}><p className="text-xs font-medium text-muted-foreground">{msg.sender} · {when(msg.at)}</p><p className="mt-1 whitespace-pre-wrap leading-6">{msg.text}</p></div>)}
+        {(trip.messages ?? []).map(msg => <div key={msg.id || msg.at + msg.text} className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${msg.bot ? "bg-secondary" : "ml-auto bg-whatsapp/15"}`}><p className="text-xs font-medium text-muted-foreground">{msg.sender} · {when(msg.at)}</p><p className="mt-1 whitespace-pre-wrap leading-6">{msg.text}</p></div>)}
       </div>
       <form className="flex gap-2 border-t border-border p-3" onSubmit={e => { e.preventDefault(); const text = chat.trim(); if (!text) return; setChat(""); void run({ action: "chat", text }) }}>
         <input value={chat} onChange={e => setChat(e.target.value)} placeholder="Message Fare — it also lands in the WhatsApp group" className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm" />
