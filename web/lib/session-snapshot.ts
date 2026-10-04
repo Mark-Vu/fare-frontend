@@ -2,6 +2,10 @@ import type { DashboardEvent, SessionSnapshot } from "@/types/dashboard"
 import type { BrowserPreview, SearchAgent } from "@/types/travel-search"
 import { planningTaskStatuses } from "@/lib/planning-tasks"
 
+export function browserSourceKey(website?: string, origin?: string) {
+  return website && origin && website !== origin ? `${website}:${origin}` : website || origin || "browser"
+}
+
 function normalizePlanningSnapshot(snapshot: SessionSnapshot): SessionSnapshot {
   const planningTasks = { ...planningTaskStatuses("pending"), ...snapshot.planningTasks }
   const statuses = Object.values(planningTasks)
@@ -20,7 +24,7 @@ export function mergeSessionSnapshot(current: SessionSnapshot | null, next: Sess
   const previews = { ...next.previews }
   for (const agent of ["flight", "hotel"] as const) {
     previews[agent] = Object.fromEntries(Object.entries(next.previews[agent] ?? {}).map(([origin, preview]) => {
-      const previous = current.previews[agent]?.[origin]
+      const previous = Object.values(current.previews[agent] ?? {}).find(item => item.browserSessionId === preview.browserSessionId)
       return [origin, previous?.browserSessionId === preview.browserSessionId
         ? { ...previous, ...preview, src: preview.src ?? previous.src }
         : preview]
@@ -81,7 +85,7 @@ export function applyBrowserEvent(current: SessionSnapshot, event: DashboardEven
   if (!origin || !wire.browser_session_id) return current
   if (wire.type === "browser.frame" && (wire.mime_type !== "image/jpeg" || typeof wire.data !== "string" || !wire.data)) return current
   const website = wire.website ?? (agent === "flight" ? "google_flights" : origin)
-  const previewKey = agent === "flight" ? `${website}:${origin}` : website
+  const previewKey = browserSourceKey(website, origin)
   const old = current.previews[agent]?.[previewKey]
   const preview: BrowserPreview = old?.browserSessionId === wire.browser_session_id ? old : { browserSessionId: wire.browser_session_id, status: "starting", website, origin }
   const next: BrowserPreview = wire.type === "browser.frame"

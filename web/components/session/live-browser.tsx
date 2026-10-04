@@ -6,20 +6,21 @@ import type { SearchRecording, SearchRecordingSource } from "@/types/dashboard"
 import type { StepStatus } from "@/types/session"
 import type { BrowserPreview, SearchAgent } from "@/types/travel-search"
 import { travelSourceLabel } from "@/lib/travel-source-label"
+import { browserSourceKey } from "@/lib/session-snapshot"
 
 type BrowserSource = { key: string; website: string; origin?: string; preview?: BrowserPreview; recording?: SearchRecordingSource }
 
 export function LiveBrowser({ status, liveViewUrl, agentType, previews = {}, recording }: { status: StepStatus; liveViewUrl?: string; agentType: SearchAgent; previews?: Record<string, BrowserPreview>; recording?: SearchRecording }) {
-  const [failedRecordingUrl, setFailedRecordingUrl] = useState<string | null>(null)
+  const [failedRecordingUrls, setFailedRecordingUrls] = useState<Set<string>>(() => new Set())
   const [selectedSource, setSelectedSource] = useState<string | null>(null)
   const flight = agentType === "flight"
   const safeLink = (url?: string) => url && /^https?:\/\//i.test(url) ? url : undefined
-  const websites = flight ? ["google_flights", "kayak"] : ["booking_com", "airbnb"]
+  const websites = flight ? ["google_flights", "trip_com"] : ["booking_com", "airbnb"]
   const tabs = new Map<string, BrowserSource>()
-  const sourceKey = (website: string, origin?: string) => flight && origin && origin !== website ? `${website}:${origin}` : website
+  const sourceKey = browserSourceKey
   for (const [key, preview] of Object.entries(previews)) {
-    const website = preview.website ?? (flight ? key.includes(":") ? key.split(":")[0] : "google_flights" : key)
-    const origin = preview.origin ?? (flight ? key.includes(":") ? key.slice(key.indexOf(":") + 1) : key : undefined)
+    const website = preview.website ?? (key.includes(":") ? key.split(":")[0] : flight ? "google_flights" : key)
+    const origin = preview.origin ?? (key.includes(":") ? key.slice(key.indexOf(":") + 1) : flight ? key : undefined)
     const tabKey = sourceKey(website, origin)
     tabs.set(tabKey, { key: tabKey, website, origin, preview })
   }
@@ -31,7 +32,8 @@ export function LiveBrowser({ status, liveViewUrl, agentType, previews = {}, rec
     const previous = tabs.get(key)
     // A retry can reuse the trip session while replacing its source browsers.
     const sourceRecording = previous?.preview && source.browserSessionId && previous.preview.browserSessionId !== source.browserSessionId ? undefined : source
-    tabs.set(key, { ...previous, key, website, origin, recording: sourceRecording })
+    const sourcePreview = source.browserSessionId ? matching?.preview ?? previous?.preview : previous?.preview
+    tabs.set(key, { ...previous, key, website, origin, preview: sourcePreview, recording: sourceRecording })
   }
   for (const website of websites) {
     if (![...tabs.values()].some(tab => tab.website === website)) tabs.set(website, { key: website, website })
@@ -47,7 +49,10 @@ export function LiveBrowser({ status, liveViewUrl, agentType, previews = {}, rec
   const preview = selected.preview
   const dashboardUrl = safeLink(preview?.liveViewUrl ?? (selected.website === websites[0] ? liveViewUrl : undefined))
   const replay = selected.recording ?? (!recording?.sources?.length && selected.website === websites[0] ? recording : undefined)
-  const recordingUrl = safeLink(replay?.recordingUrl ?? undefined) ?? safeLink(replay?.replayUrl ?? undefined)
+  const savedRecordingUrl = safeLink(replay?.recordingUrl ?? undefined)
+  const providerRecordingUrl = safeLink(replay?.replayUrl ?? undefined)
+  const candidates = [savedRecordingUrl, providerRecordingUrl, ...(selected.recording?.recordings?.map(item => safeLink(item.url)) ?? [])].filter((url): url is string => Boolean(url))
+  const recordingUrl = candidates.find(url => !failedRecordingUrls.has(url)) ?? candidates[0]
   const poster = preview?.src
   const finished = status === "completed" || status === "failed"
   const showRecording = recordingUrl && (finished || !preview || preview.status === "ended" || preview.status === "unavailable")
@@ -65,9 +70,9 @@ export function LiveBrowser({ status, liveViewUrl, agentType, previews = {}, rec
       {sources.map(source => <button key={source.key} type="button" aria-pressed={source.key === selected?.key} onClick={() => setSelectedSource(source.key)} className={`rounded-full px-3 py-1.5 text-xs ${source.key === selected?.key ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>{source.label}</button>)}
     </div>
     {selected.recording?.status === "failed" && <p role="status" className="px-4 pt-3 text-xs text-muted-foreground">{selected.label} search couldn’t finish. Available results from the other searches were kept.</p>}
-    {flight && selected.recording?.status !== "failed" && (selected.recording?.status === "partially_complete" || selected.recording?.resultsComplete === false || selected.recording?.warning) && <p role="status" className="px-4 pt-3 text-xs text-muted-foreground">{selected.label} was still loading when these fares were saved. Some options may be missing.</p>}
+    {flight && selected.recording?.status !== "failed" && (selected.recording?.status === "partially_complete" || selected.recording?.resultsComplete === false || selected.recording?.warning) && <p role="status" className="px-4 pt-3 text-xs text-muted-foreground">{selected.recording?.warning || `${selected.label} returned incomplete results. Some options may be missing.`}</p>}
     {showRecording && recordingUrl ? <figure className="p-3">
-      {failedRecordingUrl === recordingUrl ? <div role="status" className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-lg bg-secondary/30 px-5 text-center"><p className="text-sm text-muted-foreground">The recording couldn’t be played here.</p><a href={recordingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-primary underline underline-offset-4">Open recording<IconArrowUpRight className="size-3" /></a></div> : <video
+      {failedRecordingUrls.has(recordingUrl) ? <div role="status" className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-lg bg-secondary/30 px-5 text-center"><p className="text-sm text-muted-foreground">The recording couldn’t be played here.</p><a href={recordingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-primary underline underline-offset-4">Open recording<IconArrowUpRight className="size-3" /></a></div> : <video
         key={recordingUrl}
         src={recordingUrl}
         controls
@@ -75,10 +80,10 @@ export function LiveBrowser({ status, liveViewUrl, agentType, previews = {}, rec
         preload="metadata"
         poster={poster}
         aria-label={`${selected?.label ?? (flight ? "Flight" : "Hotel")} search recording`}
-        onError={() => setFailedRecordingUrl(recordingUrl)}
+        onError={() => setFailedRecordingUrls(current => new Set(current).add(recordingUrl))}
         className="block max-h-[36rem] w-full rounded-lg bg-black"
       />}
-      <figcaption className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1 text-[10px] text-muted-foreground"><span>{selected?.label ?? (flight ? "Flight agent" : "Hotel agent")} · Search recording</span><span className="flex items-center gap-1.5 font-medium text-primary"><IconPlayerPlay className="size-3" />{replay?.recordingUrl ? "Saved recording" : "Provider recording"} · replay available</span></figcaption>
+      <figcaption className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1 text-[10px] text-muted-foreground"><span>{selected?.label ?? (flight ? "Flight agent" : "Hotel agent")} · Search recording</span><span className="flex items-center gap-1.5 font-medium text-primary"><IconPlayerPlay className="size-3" />{recordingUrl === savedRecordingUrl ? "Saved recording" : "Provider recording"} · replay available</span></figcaption>
     </figure> : preview ? <div className="space-y-3 p-3"><figure key={`${selected.key}-${preview.browserSessionId}`}>
       {preview.src ? <img src={preview.src} alt={`${selected.label} live browser preview`} className="block h-auto w-full rounded-lg bg-secondary" /> : <div className="grid min-h-64 place-items-center rounded-lg bg-secondary/30 px-5 text-center"><p className="text-sm text-muted-foreground">{preview.status === "unavailable" ? "Browser preview unavailable. The search is still progressing." : preview.status === "ended" ? "Browser session ended before a preview arrived." : preview.status === "disconnected" ? "Live browser disconnected." : "Waiting for the first browser frame…"}</p></div>}
       <figcaption className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1 text-[10px] text-muted-foreground"><span>{selected.label} · {flight ? "Flight agent" : "Hotel agent"}</span><span className="flex items-center gap-1.5"><span className={`size-1.5 rounded-full ${preview.status === "live" && !finished ? "bg-whatsapp motion-safe:animate-pulse" : "bg-border"}`} />{finished || preview.status === "ended" ? "Stream ended" : preview.status === "live" ? "Live · view only" : preview.src ? `Last frame · ${preview.status}` : preview.status}</span></figcaption>
