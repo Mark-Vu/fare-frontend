@@ -30,6 +30,7 @@ export function FinalPlan({ plan: incomingPlan, session }: { plan: Plan; session
     itineraryRevision: trip.itinerary_revision,
     itineraryEditable: trip.editable,
     canUndoActivityEdit: trip.can_undo_activity_edit,
+    pendingActivityReplacement: trip.pending_activity_replacement,
     days: trip.days.map((day, index) => ({ date: day.date || plan.days[index]?.date || "", title: day.title, description: day.body, activities: day.activities || [] })),
   }), session.id, async () => {
     const latest = await getSessionSnapshot(session.groupId, session.id)
@@ -72,7 +73,7 @@ export function FinalPlan({ plan: incomingPlan, session }: { plan: Plan; session
             {day.activities.map((activity, activityIndex) => <li key={activity.id || `${day.date}-${activityIndex}`} className="flex gap-3 border-b border-border/50 py-4 last:border-b-0 sm:gap-5">
               <time dateTime={`${day.date}T${activity.time}`} className="w-12 shrink-0 pt-0.5 font-mono text-[10px] font-medium text-primary sm:w-14">{activityTime(activity.time)}</time>
               <div className="relative flex w-2 shrink-0 justify-center"><span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary/40" />{activityIndex < day.activities.length - 1 && <span aria-hidden="true" className="absolute top-4 -bottom-5 w-px bg-border" />}</div>
-              <div className="min-w-0 flex-1"><ActivityEditor activity={activity} revision={revision} editable={editable} busy={edits.busy} onSave={edits.save} /></div>
+              <div className="min-w-0 flex-1"><ActivityEditor activity={activity} revision={revision} editable={editable} busy={edits.busy} onSave={edits.save} pendingReplacement={plan.pendingActivityReplacement} replacementActions={edits} /></div>
             </li>)}
           </ol>
         </details>)}
