@@ -41,40 +41,47 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
   const state = useSessionEvents(snapshot)
   const session = state.session
   const [agent, setAgent] = useState<"flight" | "hotel">("flight")
-  const [retrying, setRetrying] = useState(false)
+  const [retryingFlight, setRetryingFlight] = useState(false)
+  const [retryingHotel, setRetryingHotel] = useState(false)
   const [skipping, setSkipping] = useState(false)
   const [retryError, setRetryError] = useState<string | null>(null)
   const completed = state.status === "completed"
   const failed = state.status === "failed"
   const searchesDone = state.flight === "completed" && state.hotel === "completed"
   const flightFailed = state.flight === "failed"
-  const flightChoice = flightFailed && state.hotel !== "failed"
-  const searchStatus: StepStatus = searchesDone ? "completed" : flightChoice || state.hotel === "failed" || failed ? "failed" : state.status === "created" ? "pending" : "running"
+  const hotelFailed = state.hotel === "failed"
+  const searchRecoverable = flightFailed || hotelFailed
+  const searchStatus: StepStatus = searchesDone ? "completed" : searchRecoverable || failed ? "failed" : state.status === "created" ? "pending" : "running"
   const browserStatus = agent === "flight" ? state.flight : state.hotel
-  const sessionStepStatus: StepStatus = completed ? "completed" : failed && !flightChoice ? "failed" : "running"
+  const sessionStepStatus: StepStatus = completed ? "completed" : failed && !searchRecoverable ? "failed" : "running"
   const plannerStatus: StepStatus = state.planning === "pending" && !failed && !completed && (searchesDone || state.status === "planning") ? "running" : state.planning
   const plannerStarted = plannerStatus !== "pending" || state.status === "planning" || completed
-  const readyStatus: StepStatus = completed ? "completed" : failed && !flightChoice ? "failed" : plannerStarted ? "running" : "pending"
-  const readyDescription = completed ? "Your fare, stay, and days are together. Booking links open with your dates already set — you confirm the card." : failed && !flightChoice ? "Planning was interrupted. Check the latest update before trying again." : state.plan ? "Finalizing your itinerary and saving your complete trip plan." : readyStatus === "running" ? "Preparing your complete trip plan as your daily schedule comes together." : "Your complete plan will appear here, with each day mapped out."
+  const readyStatus: StepStatus = completed ? "completed" : failed && !searchRecoverable ? "failed" : plannerStarted ? "running" : "pending"
+  const readyDescription = completed ? "Your flights, stay, and day-by-day itinerary are ready." : failed && !searchRecoverable ? "Planning was interrupted. Check the latest update before trying again." : state.plan ? "Finalizing your itinerary and saving your complete trip plan." : readyStatus === "running" ? "Preparing your complete trip plan as your daily schedule comes together." : "Your complete plan will appear here, with each day mapped out."
   const searchDescription = searchesDone
     ? "Your agents have finished the research. Flight and hotel options are ready."
-    : flightChoice
-      ? "Flights didn't come back. Retry them, or skip flights and keep planning the stay."
-      : state.status === "created"
-        ? "Choose your destination in the group chat. Your agents will start searching here automatically."
-        : "Your flight and hotel agents are searching together for your trip dates."
+    : flightFailed && hotelFailed
+      ? "Flight and stay searches can each be run again. There is no limit."
+      : flightFailed
+        ? "Flights didn't come back. Retry them, or skip flights and keep planning the stay."
+        : hotelFailed
+          ? "The stay search didn't come back. Retry it. You can run it again as many times as you need."
+          : state.status === "created"
+            ? "Choose your destination in the group chat. Your agents will start searching here automatically."
+            : "Your flight and hotel agents are searching together for your trip dates."
 
-  async function retryFlights() {
+  async function retrySearch(kind: "flight" | "hotel") {
+    const setRetrying = kind === "flight" ? setRetryingFlight : setRetryingHotel
     setRetrying(true)
     setRetryError(null)
     try {
-      const response = await fetch(`${orchestratorUrl}/groups/${encodeURIComponent(session.groupId)}/sessions/${encodeURIComponent(session.id)}/retry-flight`, { method: "POST" })
+      const response = await fetch(`${orchestratorUrl}/groups/${encodeURIComponent(session.groupId)}/sessions/${encodeURIComponent(session.id)}/retry-${kind}`, { method: "POST" })
       if (!response.ok) {
         const body = await response.json().catch(() => ({})) as { error?: string }
-        throw new Error(body.error || "Could not retry the flight search.")
+        throw new Error(body.error || `Could not retry the ${kind} search.`)
       }
     } catch (err) {
-      setRetryError(err instanceof Error ? err.message : "Could not retry the flight search.")
+      setRetryError(err instanceof Error ? err.message : `Could not retry the ${kind} search.`)
     } finally {
       setRetrying(false)
     }
@@ -100,7 +107,7 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
     <Link href={`/dashboard/${groupPathId(session.groupId)}`} className="mb-7 inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary"><IconArrowLeft className="size-4" />All group trips</Link>
     <div className="mb-10 flex flex-wrap items-end justify-between gap-5">
       <div><p className="mb-2 text-xs font-medium tracking-widest text-primary uppercase">Your next adventure</p><h1 className="text-5xl font-semibold tracking-[-0.05em] sm:text-6xl">{session.destination}</h1><p className="mt-3 text-sm text-muted-foreground">{session.origin} → {session.destination}<span className="mx-3 text-border">/</span>{tripDates(session.startDate, session.endDate)}</p></div>
-      <div className="flex flex-wrap items-center gap-3"><StepStatusBadge key={state.status} status={sessionStepStatus} label={completed ? "Your trip is ready" : state.status === "created" ? "Understanding your group" : failed ? "Planning interrupted" : state.status === "planning" ? "Building your itinerary" : "Planning your trip"} /></div>
+      <div className="flex flex-wrap items-center gap-3"><StepStatusBadge key={state.status} status={sessionStepStatus} label={completed ? "Your trip is ready" : state.status === "created" ? "Understanding your group" : failed && !searchRecoverable ? "Planning interrupted" : state.status === "planning" ? "Building your itinerary" : "Planning your trip"} /></div>
     </div>
     <p role="status" className="mb-6 text-xs text-muted-foreground">{state.connection === "connected" ? session.message ?? "Connected to your group’s planning session." : "Reconnecting to live updates…"}</p>
     {state.error && <div role="alert" className="mb-5 rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">{state.error}</div>}
@@ -118,9 +125,14 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
             </div>
             <LiveBrowser status={browserStatus} agentType={agent} previews={state.previews[agent]} recording={state.recordings?.[agent]} />
             <p role={browserStatus === "failed" ? "alert" : "status"} className={`text-xs leading-5 ${browserStatus === "failed" ? "text-destructive" : "text-muted-foreground"}`}>{agent === "flight" ? state.flightMessage : state.hotelMessage}</p>
-            {flightChoice && <div className="flex flex-wrap items-center gap-3"><Button size="sm" disabled={retrying || skipping} onClick={() => void retryFlights()}>{retrying ? "Retrying flights…" : "Retry flight search"}</Button><Button size="sm" variant="outline" disabled={skipping || retrying || state.hotel !== "completed"} onClick={() => void skipFlights()}>{skipping ? "Skipping flights…" : "Skip flights"}</Button>{retryError && <p role="alert" className="text-xs text-destructive">{retryError}</p>}</div>}
+            {searchRecoverable && <div className="flex flex-wrap items-center gap-3">
+              {flightFailed && <Button size="sm" disabled={retryingFlight || skipping} onClick={() => void retrySearch("flight")}>{retryingFlight ? "Retrying flights…" : "Retry flight search"}</Button>}
+              {hotelFailed && <Button size="sm" disabled={retryingHotel || skipping} onClick={() => void retrySearch("hotel")}>{retryingHotel ? "Retrying hotels…" : "Retry hotel search"}</Button>}
+              {flightFailed && state.hotel === "completed" && <Button size="sm" variant="outline" disabled={skipping || retryingFlight} onClick={() => void skipFlights()}>{skipping ? "Skipping flights…" : "Skip flights"}</Button>}
+              {retryError && <p role="alert" className="text-xs text-destructive">{retryError}</p>}
+            </div>}
             {state.flights.length > 0 && <FlightResults flights={state.flights} groupId={session.groupId} />}
-            {state.hotels.length > 0 && <HotelResults hotels={state.hotels} groupId={session.groupId} />}
+            {state.hotels.length > 0 && <HotelResults hotels={state.hotels} />}
           </div>
         </details>
       </FlowStep>
