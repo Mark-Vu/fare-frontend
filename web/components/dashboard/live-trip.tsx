@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { IconBrandWhatsapp, IconChevronDown, IconMapPin, IconSend } from "@tabler/icons-react"
 import { actOnTrip, getTrip, type TripView } from "@/lib/api/live-trip"
+import { getSessionSnapshot } from "@/lib/api/sessions"
+import type { SessionSnapshot } from "@/types/dashboard"
 import { ActivityEditor, useItineraryEdits } from "@/components/session/activity-editor"
 import { OfferLink } from "@/components/session/offer-link"
 import { ExpenseTracker } from "./expense-tracker"
@@ -23,6 +25,27 @@ function when(iso: string) {
   return d.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
 }
 
+function firstPositive(...values: Array<number | null | undefined>) {
+  for (const value of values) if (value != null && !Number.isNaN(value) && value > 0) return value
+  return 0
+}
+function lowestPrice(rows: { price?: number }[] | undefined) {
+  let best = 0
+  for (const row of rows ?? []) if (row.price && row.price > 0 && (best === 0 || row.price < best)) best = row.price
+  return best
+}
+function moneyBreakdown(trip: TripView, quote: SessionSnapshot | null) {
+  const named = trip.people?.filter(person => person.name).length ?? 0
+  const people = Math.max(1, trip.spend?.people || named || quote?.session.adults || 1)
+  const flightEach = firstPositive(trip.spend?.flight_each, trip.flights?.find(flight => flight.selected)?.price, quote?.plan?.flightPrice, lowestPrice(quote?.flights))
+  const hotelGroup = firstPositive(trip.spend?.hotel_group, trip.hotels?.find(hotel => hotel.selected)?.total, quote?.plan?.hotelPrice ? quote.plan.hotelPrice * people : 0, lowestPrice(quote?.hotels))
+  const hotelEach = firstPositive(trip.spend?.hotel_each, people ? hotelGroup / people : 0)
+  const travelEach = firstPositive(trip.spend?.travel_each, flightEach + hotelEach)
+  const travelGroup = firstPositive(trip.spend?.travel_group, flightEach * people + hotelGroup)
+  const fromSearch = !(trip.spend?.flight_each > 0 || trip.spend?.hotel_group > 0) && (flightEach > 0 || hotelGroup > 0)
+  return { flightEach, hotelGroup, hotelEach, travelEach, travelGroup, fromSearch }
+}
+
 function mergeTrip(current: TripView | null, next: TripView): TripView {
   if (!current || current.group_id !== next.group_id) return next
   if (current.current_session_id === next.current_session_id && (current.itinerary_revision ?? 0) > (next.itinerary_revision ?? 0)) return current
@@ -34,9 +57,12 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
   const [trip, setTrip] = useState<TripView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [tab, setTab] = useState<Tab>("Itinerary")
+  const visibleTabs: Tab[] = embed ? ["Money", "Flights & stays", "Chat"] : [...tabs]
+  const [tab, setTab] = useState<Tab>(embed ? "Money" : "Itinerary")
   const [actor, setActor] = useState("")
+  const [budget, setBudget] = useState("")
   const [chat, setChat] = useState("")
+  const [quote, setQuote] = useState<SessionSnapshot | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem(`fare-actor:${groupId}`) || ""
@@ -51,7 +77,17 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
         const next = await getTrip(groupId, controller.signal)
         if (!stop) {
           setTrip(current => mergeTrip(current, next))
+          setBudget(current => current || next.budget_note || "")
           setError(null)
+        }
+        const sid = sessionId || next.current_session_id
+        if (sid) {
+          try {
+            const snap = await getSessionSnapshot(groupId, sid, controller.signal)
+            if (!stop) setQuote(snap)
+          } catch (err) {
+            if (err instanceof DOMException) throw err
+          }
         }
       } catch (err) {
         if (!stop && !(err instanceof DOMException)) setError(err instanceof Error ? err.message : "Could not load this trip.")
@@ -60,7 +96,7 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
     void load()
     const timer = setInterval(load, 4000)
     return () => { stop = true; controller.abort(); clearInterval(timer) }
-  }, [groupId])
+  }, [groupId, sessionId])
 
   const itineraryEdits = useItineraryEdits(groupId, next => setTrip(current => mergeTrip(current, next)), sessionId)
   const itineraryEditable = !!trip?.editable && (!sessionId || trip.current_session_id === sessionId)
@@ -90,6 +126,7 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
 
   const chosenHotel = (trip.hotels ?? []).find(hotel => hotel.selected)
   const chosenFlights = (trip.flights ?? []).filter(flight => flight.selected)
+  const figures = moneyBreakdown(trip, quote)
 
   return <div>
     <div className="flex flex-wrap items-end justify-between gap-4">
@@ -109,7 +146,7 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
     {!trip.editable && <p className="mt-4 rounded-xl border border-border bg-secondary/60 px-4 py-3 text-sm">This itinerary is read-only. Chat still stays in sync with WhatsApp.</p>}
 
     <div className="mt-6 flex gap-2 overflow-x-auto">
-      {tabs.map(item => <button key={item} type="button" onClick={() => setTab(item)} className={`rounded-full px-4 py-2 text-sm ${tab === item ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>{item}</button>)}
+      {visibleTabs.map(item => <button key={item} type="button" onClick={() => setTab(item)} className={`rounded-full px-4 py-2 text-sm ${tab === item ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>{item}</button>)}
     </div>
 
     {tab === "Itinerary" && <section className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
@@ -117,7 +154,7 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
         {itineraryEditable && trip.can_undo_activity_edit && <button type="button" disabled={itineraryEdits.busy} onClick={() => void itineraryEdits.undo(trip.itinerary_revision ?? 0)} className="rounded-full border border-border px-3 py-1.5 text-xs disabled:opacity-50">Undo last edit</button>}
         {itineraryEdits.error && <p role="alert" className="text-sm text-destructive">{itineraryEdits.error}</p>}
         {(trip.days ?? []).length === 0 && <div className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">No day-by-day yet. Tag Fare in WhatsApp and ask for the plan — it will show up here.</div>}
-        {(trip.days ?? []).map((day, i) => <details key={`${day.title}-${i}`} className="group/day rounded-2xl border border-border bg-card">
+        {(trip.days ?? []).map((day, i) => <details key={`${day.title}-${i}`} open={i === 0} className="group/day rounded-2xl border border-border bg-card">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
             <h2 className="font-semibold">{day.title}</h2>
             <IconChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open/day:rotate-180" />
@@ -130,25 +167,43 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
         </details>)}
       </div>
       <aside className="space-y-3">
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <p className="text-xs tracking-widest uppercase text-muted-foreground">Flights + hotel</p>
+          <dl className="mt-3 space-y-2 text-sm">
+            <div className="flex justify-between gap-3"><dt>Flights each</dt><dd>{cad(figures.flightEach)}</dd></div>
+            <div className="flex justify-between gap-3"><dt>Hotel, group</dt><dd>{cad(figures.hotelGroup)}</dd></div>
+            <div className="flex justify-between gap-3"><dt>Hotel each</dt><dd>{cad(figures.hotelEach)}</dd></div>
+            <div className="flex justify-between gap-3 border-t border-border pt-2 font-semibold"><dt>Total each</dt><dd>{cad(figures.travelEach)}</dd></div>
+            <div className="flex justify-between gap-3 font-semibold"><dt>Group total</dt><dd>{cad(figures.travelGroup)}</dd></div>
+          </dl>
+          {(trip.spend?.food_per_day || trip.spend?.food_trip) && <p className="mt-3 text-xs text-muted-foreground">Food about {cad(trip.spend.food_per_day)} / day · {cad(trip.spend.food_trip)} for the trip, each. Not booked.</p>}
+        </div>
         <div className="rounded-2xl bg-forest p-5 text-primary-foreground"><p className="text-xs tracking-widest uppercase text-sun">Stay</p><p className="mt-2 text-2xl font-semibold">{chosenHotel?.name || "Not chosen"}</p><p className="mt-2 text-sm opacity-80">{trip.nights ? `${trip.nights} nights` : "Dates come from the chat"}</p>{chosenHotel?.reason && <p className="mt-3 text-xs leading-5 opacity-80">{chosenHotel.reason}</p>}<div className="mt-3"><OfferLink url={chosenHotel?.booking_url || chosenHotel?.checkout_url || chosenHotel?.url} label="View stay" /></div></div>
         {chosenFlights.map((flight, index) => <div key={`${flight.offer_id}-${index}`} className="rounded-2xl border border-border bg-card p-4"><p className="text-xs uppercase tracking-wide text-muted-foreground">Chosen flight</p><p className="mt-2 font-semibold">{flight.airline}</p><p className="mt-1 text-sm text-muted-foreground">{flight.origin} → {flight.destination}</p><div className="mt-3"><OfferLink url={flight.booking_url} label={flight.link_type === "search" ? "Search flights" : "View flight"} /></div></div>)}
         {(trip.places ?? []).map((place, i) => <a key={`${place.name}-${place.neighborhood}-${i}`} href={place.map} target="_blank" rel="noreferrer" className="block rounded-2xl border border-border bg-card p-4"><p className="flex items-center gap-2 font-medium"><IconMapPin className="size-4 text-primary" />{place.name}</p><p className="mt-1 text-xs text-muted-foreground">{place.neighborhood}</p><p className="mt-2 text-sm leading-5">{place.why}</p>{place.est_cad != null && <p className="mt-2 text-xs">{cad(place.est_cad)} a person, rough</p>}</a>)}
       </aside>
     </section>}
 
-    {tab === "Money" && <><section className="mt-6 max-w-2xl">
+    {tab === "Money" && <><section className="mt-6 grid gap-4 md:grid-cols-2">
       <div className="rounded-2xl border border-border bg-card p-6">
         <h2 className="text-lg font-semibold">Flights + hotel</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Food is not in these numbers.</p>
+        <p className="mt-1 text-xs text-muted-foreground">{figures.fromSearch ? "From the latest flight and stay search. Food is not in these numbers." : "Food is not in these numbers."}</p>
         <dl className="mt-5 space-y-3 text-sm">
-          <div className="flex justify-between"><dt>Flights each</dt><dd>{cad(trip.spend.flight_each)}</dd></div>
-          <div className="flex justify-between"><dt>Hotel, group</dt><dd>{cad(trip.spend.hotel_group)}</dd></div>
-          <div className="flex justify-between"><dt>Hotel each</dt><dd>{cad(trip.spend.hotel_each)}</dd></div>
-          <div className="flex justify-between border-t border-border pt-3 font-semibold"><dt>Total each</dt><dd>{cad(trip.spend.travel_each)}</dd></div>
-          <div className="flex justify-between font-semibold"><dt>Group total</dt><dd>{cad(trip.spend.travel_group)}</dd></div>
+          <div className="flex justify-between"><dt>Flights each</dt><dd>{cad(figures.flightEach)}</dd></div>
+          <div className="flex justify-between"><dt>Hotel, group</dt><dd>{cad(figures.hotelGroup)}</dd></div>
+          <div className="flex justify-between"><dt>Hotel each</dt><dd>{cad(figures.hotelEach)}</dd></div>
+          <div className="flex justify-between border-t border-border pt-3 font-semibold"><dt>Total each</dt><dd>{cad(figures.travelEach)}</dd></div>
+          <div className="flex justify-between font-semibold"><dt>Group total</dt><dd>{cad(figures.travelGroup)}</dd></div>
         </dl>
-        {(trip.spend.food_per_day || trip.spend.food_trip) && <div className="mt-5 rounded-xl bg-secondary p-4 text-sm"><p className="font-medium">Food estimate</p><p className="mt-1 text-muted-foreground">{trip.spend.food_note}</p><p className="mt-2">{cad(trip.spend.food_per_day)} / day · {cad(trip.spend.food_trip)} for the trip, per person. Not booked.</p></div>}
+        {!!trip.owes?.length && <ul className="mt-5 space-y-2 text-sm">{trip.owes.map(row => <li key={`${row.from}-${row.to}`} className="flex justify-between gap-3"><span>{row.from} pays {row.to}</span><span>{cad(row.amount)}</span></li>)}</ul>}
+        {(trip.spend?.food_per_day || trip.spend?.food_trip) && <div className="mt-5 rounded-xl bg-secondary p-4 text-sm"><p className="font-medium">Food estimate</p><p className="mt-1 text-muted-foreground">{trip.spend.food_note}</p><p className="mt-2">{cad(trip.spend.food_per_day)} / day · {cad(trip.spend.food_trip)} for the trip, per person. Not booked.</p></div>}
       </div>
+      <form className="rounded-2xl border border-border bg-card p-6" onSubmit={e => { e.preventDefault(); void run({ action: "set_budget", budget }) }}>
+        <h2 className="font-semibold">Planning budget</h2>
+        <p className="mt-1 text-sm text-muted-foreground">One number for the group, in CAD. It guides food and options. It does not change the locked fare.</p>
+        {trip.budget_note && <p className="mt-3 text-sm">Saved budget: {trip.budget_note}</p>}
+        <div className="mt-4 flex gap-2"><input value={budget} onChange={e => setBudget(e.target.value)} placeholder="2500" className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm" /><button disabled={busy} className="rounded-xl bg-primary px-4 text-sm text-primary-foreground">Save</button></div>
+      </form>
     </section>
     <div className="mt-6">{(sessionId || trip.current_session_id) ? <ExpenseTracker key={`${groupId}:${sessionId || trip.current_session_id}`} groupId={groupId} sessionId={(sessionId || trip.current_session_id)!} /> : <p className="text-sm text-muted-foreground">Recorded expenses will be available once this trip has a planning session.</p>}</div>
     </>}

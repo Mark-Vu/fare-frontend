@@ -54,9 +54,10 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
   const searchStatus: StepStatus = searchesDone ? "completed" : searchRecoverable || failed ? "failed" : state.status === "created" ? "pending" : "running"
   const browserStatus = agent === "flight" ? state.flight : state.hotel
   const sessionStepStatus: StepStatus = completed ? "completed" : failed && !searchRecoverable ? "failed" : "running"
-  const plannerStatus: StepStatus = state.planning === "pending" && !failed && !completed && (searchesDone || state.status === "planning") ? "running" : state.planning
-  const plannerStarted = plannerStatus !== "pending" || state.status === "planning" || completed
-  const readyStatus: StepStatus = completed ? "completed" : failed && !searchRecoverable ? "failed" : plannerStarted ? "running" : "pending"
+  const plannerStatus: StepStatus = state.planning
+  const plannerStarted = state.status === "planning" || state.planning === "running" || state.planning === "completed" || state.planning === "failed" || completed
+  const planReady = completed || (state.planning === "completed" && !!state.plan)
+  const readyStatus: StepStatus = planReady ? "completed" : failed && !searchRecoverable ? "failed" : state.planning === "running" ? "running" : "pending"
   const readyDescription = completed ? "Your flights, stay, and day-by-day itinerary are ready." : failed && !searchRecoverable ? "Planning was interrupted. Check the latest update before trying again." : state.plan ? "Finalizing your itinerary and saving your complete trip plan." : readyStatus === "running" ? "Preparing your complete trip plan as your daily schedule comes together." : "Your complete plan will appear here, with each day mapped out."
   const searchDescription = searchesDone
     ? "Your agents have finished the research. Flight and hotel options are ready."
