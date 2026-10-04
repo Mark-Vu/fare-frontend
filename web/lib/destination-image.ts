@@ -7,6 +7,9 @@ const DESTINATION_IMAGES: { match: RegExp; src: string }[] = [
 const FALLBACK_IMAGE = "/images/hero-japan-cove.png"
 
 export function destinationImage(destination: string) {
-  const hit = DESTINATION_IMAGES.find(({ match }) => match.test(destination))
-  return hit?.src ?? FALLBACK_IMAGE
+  return destinationCover(destination) ?? FALLBACK_IMAGE
+}
+
+export function destinationCover(destination: string) {
+  return DESTINATION_IMAGES.find(({ match }) => match.test(destination))?.src
 }

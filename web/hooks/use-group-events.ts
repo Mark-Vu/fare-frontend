@@ -19,10 +19,12 @@ function usePlanningEvents(groupId: string | null) {
   const [newSession, setNewSession] = useState<TripSession | null>(null)
   const [connection, setConnection] = useState<ConnectionStatus>("connecting")
   const [error, setError] = useState<string | null>(null)
+  const [loaded, setLoaded] = useState(false)
   useEffect(() => {
     setSessions([])
     setNewSession(null)
     setError(null)
+    setLoaded(false)
     const controller = new AbortController()
     const seen = new Set<string>()
     const notified = new Set<string>()
@@ -36,14 +38,15 @@ function usePlanningEvents(groupId: string | null) {
       setNewSession(session)
     }
     function receiveSessions(next: TripSession[]) {
-      const latestFailure = next[0]?.status === "failed" && !seen.has(next[0].id) ? next[0] : null
+      const active = next.find(session => !seen.has(session.id) && !["completed", "failed"].includes(session.status))
       // A session may finish before the next snapshot arrives. Notify about new
       // sessions discovered after loading, including those already completed.
-      const latestNew = receivedSessions ? next.find(session => !seen.has(session.id) && ["completed", "failed"].includes(session.status)) ?? null : null
+      const latestNew = receivedSessions ? next.find(session => !seen.has(session.id)) : null
       next.forEach(session => seen.add(session.id))
       receivedSessions = true
       setSessions(next)
-      const notification = latestNew || latestFailure
+      setLoaded(true)
+      const notification = latestNew || active
       if (notification) notify(notification)
       else setNewSession(current => current ? next.find(session => session.id === current.id) ?? current : null)
     }
@@ -58,7 +61,10 @@ function usePlanningEvents(groupId: string | null) {
           setError(null)
         }
       } catch {
-        if (!controller.signal.aborted && startedAt === revision && status !== "connected") setError("Could not load sessions. Check that the orchestrator is running at the configured API URL.")
+        if (!controller.signal.aborted && startedAt === revision) {
+          setLoaded(true)
+          if (status !== "connected") setError("Could not load sessions. Check that the orchestrator is running at the configured API URL.")
+        }
       } finally {
         loading = false
       }
@@ -73,10 +79,11 @@ function usePlanningEvents(groupId: string | null) {
         revision++
         setError(null)
         const session = event.session ?? event.snapshot!.session
+        setLoaded(true)
         setSessions(current => [session, ...current.filter(item => item.id !== session.id)])
         // Start events are authoritative even if an HTTP snapshot already
         // introduced the session. Receiving it and notifying are separate.
-        if ((event.type === "session.started" || !seen.has(session.id)) && ["completed", "failed"].includes(session.status)) notify(session)
+        if (event.type === "session.started" || !seen.has(session.id)) notify(session)
         else setNewSession(current => current?.id === session.id ? session : current)
         seen.add(session.id)
       } else if (event.type === "connection.error") {
@@ -102,5 +109,5 @@ function usePlanningEvents(groupId: string | null) {
       unsubscribe()
     }
   }, [groupId])
-  return { sessions, newSession, connection, error, dismissSession: () => setNewSession(null) }
+  return { sessions, newSession, connection, error, loaded, dismissSession: () => setNewSession(null) }
 }

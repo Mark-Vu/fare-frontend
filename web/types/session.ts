@@ -1,6 +1,7 @@
 export type TripSession = {
   id: string
   groupId: string
+  groupName?: string
   destination: string
   origin: string
   originAirport?: string
