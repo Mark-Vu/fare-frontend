@@ -12,10 +12,11 @@ export function GroupDashboard({ groupId, compact = false }: { groupId: string; 
   const previous = compact ? sessions.slice(1) : sessions.filter(session => ["completed", "failed"].includes(session.status))
   const currentSearch = compact ? sessions[0] : undefined
   const failureMessage = "Fare could not finish this planning session. Open the session for details, then try again in the group chat."
+  const groupLabel = sessions.find(session => session.groupName?.trim())?.groupName?.trim() || "WhatsApp group"
 
   return <>
     {!compact && <div className="flex flex-wrap items-end justify-between gap-6">
-      <div><p className="mb-3 flex items-center gap-2 text-xs font-medium tracking-widest text-primary uppercase"><IconBrandWhatsapp className="size-4" />WhatsApp group · {groupId}</p><h1 className="text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">Good trips start in the chat.</h1><p className="mt-4 max-w-xl text-muted-foreground">Your group’s plans, from the first idea to the final itinerary.</p></div>
+      <div><p className="mb-3 flex items-center gap-2 text-xs font-medium tracking-widest text-primary uppercase"><IconBrandWhatsapp className="size-4" />{groupLabel}</p><h1 className="text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">Good trips start in the chat.</h1><p className="mt-4 max-w-xl text-muted-foreground">Your group’s plans, from the first idea to the final itinerary.</p></div>
       <span role="status" className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs"><span className={`size-1.5 rounded-full ${connection === "connected" ? "bg-whatsapp" : "bg-sun motion-safe:animate-pulse"}`} />{connection === "connected" ? "Connected to your group" : connection === "connecting" ? "Connecting to your group…" : "Reconnecting to your group…"}</span>
     </div>}
     {compact && <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold tracking-tight">Current trip search</h2><span role="status" className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs"><span className={`size-1.5 rounded-full ${connection === "connected" ? "bg-whatsapp" : "bg-sun motion-safe:animate-pulse"}`} />{connection === "connected" ? "Live updates" : "Reconnecting…"}</span></div>}

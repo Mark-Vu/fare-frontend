@@ -1,7 +1,9 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { subscribeDashboardSocket, subscribeGroupSocket } from "@/lib/api/group-socket"
+import { listTrips } from "@/lib/api/live-trip"
 import { getDashboardSessions, getGroupSessions } from "@/lib/api/sessions"
+import { canonicalGroupId } from "@/lib/group-id"
 import type { DashboardEvent } from "@/types/dashboard"
 import type { ConnectionStatus } from "@/types/dashboard"
 import type { TripSession } from "@/types/session"
@@ -20,6 +22,7 @@ function usePlanningEvents(groupId: string | null) {
   const [connection, setConnection] = useState<ConnectionStatus>("connecting")
   const [error, setError] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
+  const groupNames = useRef(new Map<string, string>())
   useEffect(() => {
     setSessions([])
     setNewSession(null)
@@ -37,7 +40,25 @@ function usePlanningEvents(groupId: string | null) {
       notified.add(session.id)
       setNewSession(session)
     }
+    function withGroupName(session: TripSession) {
+      if (session.groupName?.trim()) return session
+      const name = groupNames.current.get(canonicalGroupId(session.groupId))
+      return name ? { ...session, groupName: name } : session
+    }
+    async function loadGroupNames() {
+      try {
+        const trips = await listTrips(controller.signal)
+        for (const trip of trips) {
+          const name = trip.group_name?.trim()
+          if (name) groupNames.current.set(canonicalGroupId(trip.group_id), name)
+        }
+        setSessions(current => current.map(withGroupName))
+      } catch {
+        // Cards still render if the trip list is briefly unavailable.
+      }
+    }
     function receiveSessions(next: TripSession[]) {
+      next = next.map(withGroupName)
       const active = next.find(session => !seen.has(session.id) && !["completed", "failed"].includes(session.status))
       // A session may finish before the next snapshot arrives. Notify about new
       // sessions discovered after loading, including those already completed.
@@ -55,6 +76,7 @@ function usePlanningEvents(groupId: string | null) {
       loading = true
       const startedAt = revision
       try {
+        await loadGroupNames()
         const next = await (groupId === null ? getDashboardSessions(controller.signal) : getGroupSessions(groupId, controller.signal))
         if (!controller.signal.aborted && startedAt === revision) {
           receiveSessions(next)
@@ -74,11 +96,11 @@ function usePlanningEvents(groupId: string | null) {
       if ((event.type === "group.snapshot" || event.type === "dashboard.snapshot") && event.sessions) {
         revision++
         setError(null)
-        receiveSessions(event.sessions.map(snapshot => snapshot.session))
+        receiveSessions(event.sessions.map(snapshot => snapshot.session).map(withGroupName))
       } else if ((event.session || event.snapshot?.session) && !event.type.startsWith("agent.")) {
         revision++
         setError(null)
-        const session = event.session ?? event.snapshot!.session
+        const session = withGroupName(event.session ?? event.snapshot!.session)
         setLoaded(true)
         setSessions(current => [session, ...current.filter(item => item.id !== session.id)])
         // Start events are authoritative even if an HTTP snapshot already
