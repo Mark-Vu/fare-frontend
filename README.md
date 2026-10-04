@@ -324,3 +324,21 @@ For backend changes, read the sibling orchestrator's `README.md`,
 `dashboard/manager.go`. For worker changes, read the travel services' READMEs,
 each service's `websocket_test_server.py`, `service.py`, and `live_browser.py`;
 hotel extraction is in `hotel-service/booking.py`.
+
+### Hotel sources and recordings
+
+The updated hotel worker searches Booking.com and Airbnb concurrently and returns
+up to eight offers per source. Hotel cards display the source, property type,
+and original rating scale when supplied. A source failure can leave valid offers
+from the other source available.
+
+The backend persists all source recording metadata in
+`snapshot.recordings.hotel.sources`, while retaining the legacy main recording
+fields. The hotel browser panel switches between Booking.com and Airbnb videos,
+preferring archived S3 links and falling back to provider replay links when
+necessary. Provider links can expire. Booking.com remains the live frame preview;
+Airbnb has a separate recording after the search finishes.
+
+Existing single-recording snapshots still render. Worker changes require a hotel
+Lambda deployment; backend and frontend changes require their respective restarts
+or deployments. These integration changes have not been run through QA.

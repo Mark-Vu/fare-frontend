@@ -15,4 +15,4 @@ export type TripSession = {
 export type StepStatus = "pending" | "running" | "completed" | "failed"
 export type ItineraryActivity = { time: string; title: string; description: string }
 export type ItineraryDay = { date: string; title: string; description: string; activities: ItineraryActivity[] }
-export type FinalPlan = { isSampleSchedule?: boolean; flight: string; route: string; flightPrice: number; hotel: string; nights: number; hotelPrice: number; explanation: string; days: ItineraryDay[] }
+export type FinalPlan = { isSampleSchedule?: boolean; flight: string; route: string; flightPrice: number; hotel: string; nights: number; hotelPrice: number; hotelSource?: string; hotelPropertyType?: string; hotelOriginalRating?: number | null; hotelOriginalRatingScale?: number | null; hotelPriceNote?: string; explanation: string; days: ItineraryDay[] }

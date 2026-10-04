@@ -5,12 +5,26 @@ import type { Hotel } from "./hotel"
 import type { BrowserPreview, SearchAgent, TravelSearchEvent } from "./travel-search"
 import type { SearchError } from "./travel-search"
 
+export type SearchRecordingSource = {
+  website?: string
+  origin?: string
+  status?: string
+  error?: SearchError | null
+  recordingUrl?: string | null
+  replayUrl?: string | null
+  recordingError?: SearchError | null
+  browserSessionId?: string | null
+  recordings?: { url: string; filename: string }[]
+}
+
 export type SearchRecording = {
   agentType?: SearchAgent
   searchId?: string
   recordingUrl?: string | null
+  replayUrl?: string | null
   recordingError?: SearchError | null
   deliveryError?: SearchError | null
+  sources?: SearchRecordingSource[]
 }
 
 export type SessionSnapshot = {
