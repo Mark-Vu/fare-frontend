@@ -73,6 +73,8 @@ const approvals = [
 export default function Page() {
   return (
     <main className="overflow-clip bg-background text-foreground">
+      <div className="relative bg-forest p-5 sm:p-7">
+      <div className="relative overflow-hidden rounded-[1.75rem] bg-background sm:rounded-[2.25rem]">
       <header className="absolute inset-x-0 top-0 z-20 h-18">
         <nav
           aria-label="Primary navigation"
@@ -99,14 +101,14 @@ export default function Page() {
           <Button
             render={<a href="/dashboard" />}
             nativeButton={false}
-            className="h-10 bg-forest px-4 text-primary-foreground hover:bg-forest/90"
+            className="h-10 rounded-full bg-secondary px-4 text-forest hover:bg-secondary/80"
           >
             Open dashboard
           </Button>
         </nav>
       </header>
 
-      <section id="top" className="relative min-h-[100dvh] overflow-hidden">
+      <section id="top" className="relative min-h-[calc(100dvh-1.5rem)] sm:min-h-[calc(100dvh-2rem)]">
         <div className="hero-glow" aria-hidden="true" />
         <div className="hero-globe" aria-hidden="true">
           <div className="hero-globe-spin">
@@ -156,38 +158,16 @@ export default function Page() {
             </p>
           </div>
 
-          <p className="hero-subline">
-            Fare reads each person&apos;s dates, budget, and preferences, then
-            brings one best-fit trip back to the chat.
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button
-              render={<a href="#how-it-works" />}
-              nativeButton={false}
-              size="lg"
-              className="h-12 bg-sun px-5 text-forest hover:bg-sun/90"
-            >
-              Follow the chat
-              <ArrowRight data-icon="inline-end" strokeWidth={1.8} />
-            </Button>
-            <Button
-              render={<a href="#destinations" />}
-              nativeButton={false}
-              size="lg"
-              variant="outline"
-              className="h-12 border-border bg-card/70 px-5 text-foreground backdrop-blur-md hover:bg-card"
-            >
-              See trip ideas
-            </Button>
-          </div>
         </div>
       </section>
+      </div>
+      </div>
 
+      <div>
       <WhatsAppStory />
 
       <section
-        className="px-4 py-16 sm:px-6 md:py-20 lg:px-10 lg:py-24"
+        className="relative px-4 py-16 sm:px-6 md:py-20 lg:px-10 lg:py-24"
         aria-labelledby="ledger-title"
       >
         <div className="mx-auto grid max-w-[1400px] gap-10 md:grid-cols-12 md:items-start">
@@ -239,7 +219,7 @@ export default function Page() {
       </section>
 
       <section
-        className="px-4 py-16 sm:px-6 md:py-20 lg:px-10 lg:py-24"
+        className="relative px-4 py-16 sm:px-6 md:py-20 lg:px-10 lg:py-24"
         aria-labelledby="fit-title"
       >
         <div className="mx-auto grid max-w-[1400px] gap-8 md:grid-cols-12 md:items-center">
@@ -320,7 +300,7 @@ export default function Page() {
 
       <section
         id="live-plan"
-        className="px-4 py-16 sm:px-6 md:py-20 lg:px-10 lg:py-24"
+        className="flow-dark mx-4 rounded-[2.5rem] bg-forest px-4 py-16 sm:mx-6 sm:rounded-[3.5rem] sm:px-6 md:py-20 lg:mx-10 lg:px-10 lg:py-24"
         aria-labelledby="live-plan-title"
       >
         <div className="mx-auto max-w-[1400px]">
@@ -421,7 +401,7 @@ export default function Page() {
 
       <section
         id="destinations"
-        className="px-4 py-16 sm:px-6 md:py-20 lg:px-10 lg:py-24"
+        className="relative px-4 py-16 sm:px-6 md:py-20 lg:px-10 lg:py-24"
         aria-labelledby="destinations-title"
       >
         <div className="mx-auto max-w-[1400px]">
@@ -470,7 +450,7 @@ export default function Page() {
       </section>
 
       <section
-        className="px-4 py-6 sm:px-6 md:py-8 lg:px-10 lg:py-10"
+        className="relative px-4 py-6 sm:px-6 md:py-8 lg:px-10 lg:py-10"
         aria-labelledby="consensus-title"
       >
         <div className="mx-auto grid max-w-[1400px] gap-8 border-y border-border py-8 md:grid-cols-12 md:items-center md:py-10">
@@ -556,8 +536,9 @@ export default function Page() {
           </RevealItem>
         </Reveal>
       </section>
+      </div>
 
-      <footer className="px-4 pb-8 sm:px-6 lg:px-10">
+      <footer className="flow-dark relative bg-forest px-4 py-8 sm:px-6 lg:px-10">
         <div className="mx-auto flex max-w-[1400px] flex-col gap-5 border-t border-border pt-7 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <a
             href="#top"
