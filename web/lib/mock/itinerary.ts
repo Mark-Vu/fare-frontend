@@ -1,0 +1,160 @@
+import type { ItineraryDay, TripSession } from "@/types/session"
+
+type DayOutline = { title: string; description: string; stops: [string, string][] }
+const tokyoDays: DayOutline[] = [
+  {
+    title: "Hello, Tokyo", description: "Arrival, Shinjuku, and an easy first evening.",
+    stops: [
+      ["Arrive in Tokyo", "Land at Narita, collect bags, and pick up an IC transit card."],
+      ["Airport breakfast", "Coffee and a light breakfast before the train into the city."],
+      ["Train to Shinjuku", "Take the Narita Express and enjoy your first look at Tokyo."],
+      ["Drop off your bags", "Leave luggage at Hotel Gracery Shinjuku; check-in comes later."],
+      ["Ramen lunch", "Start with a warm bowl of ramen near Shinjuku Station."],
+      ["Explore the neighborhood", "Locate the station, a convenience store, and your favorite coffee spot."],
+      ["Shinjuku Gyoen", "A gentle garden walk to reset after the flight."],
+      ["Hotel check-in", "Settle in, shower, and take a short rest."],
+      ["Free time", "Unpack or head out for a snack; keep the first afternoon flexible."],
+      ["City views", "Visit the Tokyo Metropolitan Government Building area."],
+      ["Welcome dinner", "Share yakitori and small plates around Omoide Yokocho."],
+      ["Shinjuku after dark", "Walk past the neon lights and browse a few shops."],
+      ["Dessert stop", "Pick up something sweet and compare everyone’s first impressions."],
+      ["Wind down", "Return to the hotel for an early night and a fresh start tomorrow."],
+    ],
+  },
+  {
+    title: "Shibuya & Harajuku", description: "Big city energy, small cafés, and a little shopping.",
+    stops: [
+      ["Breakfast near the hotel", "Fuel up with toast, eggs, and coffee before heading out."],
+      ["Train to Harajuku", "Take the JR line and walk toward the shrine entrance."],
+      ["Meiji Shrine", "Follow the wooded paths and enjoy a quieter side of the city."],
+      ["Yoyogi Park", "Take a relaxed walk and pause for photos."],
+      ["Harajuku lunch", "Find a casual lunch spot on the side streets."],
+      ["Takeshita Street", "Browse small shops and split a crêpe with the group."],
+      ["Omotesando", "Explore design stores, architecture, and quieter backstreets."],
+      ["Coffee break", "Take a seat at a café and give everyone time to recharge."],
+      ["Walk to Shibuya", "Make your way toward the crossing through the shopping streets."],
+      ["Shibuya Crossing", "See the crossing and meet up near Hachiko for photos."],
+      ["Dinner in Shibuya", "Choose a casual izakaya with something for everyone."],
+      ["Skyline stop", "Enjoy city views; book an observation deck separately if desired."],
+      ["Evening wander", "Browse music shops or take a quieter walk off the main streets."],
+      ["Back to Shinjuku", "Take the train home and pick up snacks for the hotel."],
+    ],
+  },
+  {
+    title: "Old Tokyo & the river", description: "Asakusa, temple streets, and a riverside afternoon.",
+    stops: [
+      ["Breakfast", "Keep it simple with coffee and pastries close to the hotel."],
+      ["Travel to Asakusa", "Take the train and walk toward the temple district."],
+      ["Sensō-ji", "Explore the temple grounds and take in the historic streets."],
+      ["Nakamise shopping", "Look for souvenirs and try a small local snack."],
+      ["Soba lunch", "Sit down for noodles at a nearby neighborhood restaurant."],
+      ["Sumida River walk", "Walk along the river with plenty of photo stops."],
+      ["Explore Sumida", "Browse the neighborhood and admire the skyline from below."],
+      ["Tea break", "Try matcha or a seasonal dessert and rest your feet."],
+      ["Kappabashi", "Browse kitchenware and beautifully made tableware."],
+      ["Return to the hotel", "Freshen up and take a little time to yourself."],
+      ["Dinner together", "Share sushi or a set meal around Shinjuku."],
+      ["Evening stroll", "Explore a new side street or a bookshop close to the hotel."],
+      ["Group catch-up", "Pick tomorrow’s favorite stops over a drink or dessert."],
+      ["Rest", "Head back to the hotel and charge up for another day."],
+    ],
+  },
+  {
+    title: "Markets, design & Ginza", description: "A food-focused morning and a polished city afternoon.",
+    stops: [
+      ["Light breakfast", "Save some appetite for the market’s food stalls."],
+      ["Travel to Tsukiji", "Take the train to the outer market area."],
+      ["Tsukiji Outer Market", "Browse the stalls and try a few small bites."],
+      ["Market discoveries", "Pick up tea, pantry treats, or gifts for home."],
+      ["Seafood lunch", "Choose a sit-down lunch spot around the market."],
+      ["Walk toward Ginza", "Enjoy a slower walk into the shopping district."],
+      ["Design & stationery", "Browse stationery, crafts, and department-store displays."],
+      ["Ginza coffee", "Take a café break and regroup before more exploring."],
+      ["Gallery time", "Choose a small gallery or browse the architecture outside."],
+      ["Free shopping time", "Split up for personal wishlists and meet again before dinner."],
+      ["Dinner in Ginza", "Choose a reasonably priced noodle or set-meal restaurant."],
+      ["Tokyo Station", "See the illuminated station building and surrounding streets."],
+      ["Dessert & souvenirs", "Browse the station shops for sweets to take home."],
+      ["Return to the hotel", "Take the train back and wind down."],
+    ],
+  },
+  {
+    title: "A day in Kamakura", description: "A flexible day trip with temples and a little sea air.",
+    stops: [
+      ["Breakfast & day bags", "Bring water, comfortable shoes, and an extra layer."],
+      ["Train to Kamakura", "Travel out of the city; confirm the day’s route before leaving."],
+      ["Komachi Street", "Explore the shops and grab a snack after arriving."],
+      ["Shrine walk", "Visit Tsurugaoka Hachimangū and its surrounding paths."],
+      ["Local lunch", "Try a seasonal lunch near the station."],
+      ["Travel toward Hase", "Take local transit and keep the afternoon unhurried."],
+      ["Great Buddha", "Visit the temple grounds and enjoy the open-air setting."],
+      ["Hase neighborhood", "Browse the small shops and stop for tea."],
+      ["Coastal walk", "Head toward the beach if the weather is comfortable."],
+      ["Train back to Tokyo", "Regroup at the station and head back together."],
+      ["Easy dinner", "Choose a low-key restaurant near your hotel."],
+      ["Free evening", "Relax or take a short neighborhood walk."],
+      ["Hotel hangout", "Compare photos and make room for tomorrow’s wishlists."],
+      ["Rest", "Keep the evening easy after a full day out."],
+    ],
+  },
+  {
+    title: "Everyone’s Tokyo wishlist", description: "Akihabara, Ueno, and room to follow your own interests.",
+    stops: [
+      ["Breakfast together", "Agree on a meeting point for the afternoon."],
+      ["Travel to Ueno", "Start the day around the park and museum district."],
+      ["Ueno Park", "Take a walk or choose a museum that interests your group."],
+      ["Explore at your own pace", "Leave room for art, photography, or a quiet café."],
+      ["Ameyoko lunch", "Find a casual food stop near the market streets."],
+      ["Market browsing", "Look for snacks, gifts, and interesting little shops."],
+      ["Akihabara", "Explore game shops, electronics, and pop-culture stores."],
+      ["Coffee & regroup", "Meet back up and compare everyone’s finds."],
+      ["Personal wishlist time", "Split up for one or two favorite stops."],
+      ["Return & recharge", "Drop off shopping bags and freshen up."],
+      ["Group dinner", "Pick a favorite cuisine everyone has been wanting to try."],
+      ["Arcade stop", "Play a few games together or choose a nearby evening walk."],
+      ["Last-minute browsing", "Pick up small souvenirs without rushing."],
+      ["Back to the hotel", "Rest up for your final full day in Tokyo."],
+    ],
+  },
+  {
+    title: "Slow Tokyo & one last dinner", description: "Daikanyama, favorite moments, and an easy farewell.",
+    stops: [
+      ["Slow breakfast", "Enjoy a relaxed start and compare favorite trip moments."],
+      ["Travel to Daikanyama", "Head out for quieter streets and a slower morning."],
+      ["Books & design", "Browse bookstores, design shops, and independent boutiques."],
+      ["Neighborhood walk", "Explore the side streets without a tight schedule."],
+      ["Lunch in Daikanyama", "Choose a café lunch and take your time."],
+      ["Walk toward Nakameguro", "Follow the neighborhood streets toward the river."],
+      ["Riverside browsing", "Explore the small shops around the canal."],
+      ["Final café break", "Make time for coffee, dessert, and a few group photos."],
+      ["Souvenir stop", "Pick up the last gifts on your list."],
+      ["Pack & recharge", "Return to the hotel and prepare for tomorrow’s departure."],
+      ["Farewell dinner", "Choose the group’s favorite style of food for one final meal."],
+      ["One last Tokyo walk", "Enjoy the city lights close to the hotel."],
+      ["Departure prep", "Confirm airport transit, flight details, and luggage."],
+      ["Early night", "Rest before checkout and your journey home tomorrow."],
+    ],
+  },
+]
+
+export function mockItinerary(session: TripSession): ItineraryDay[] {
+  const start = new Date(`${session.startDate}T00:00:00Z`)
+  const count = Math.max(1, Math.round((new Date(`${session.endDate}T00:00:00Z`).getTime() - start.getTime()) / 86400000))
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(start.getTime() + index * 86400000).toISOString().slice(0, 10)
+    const outline = session.destination === "Tokyo" ? tokyoDays[index % tokyoDays.length] : {
+      title: index === 0 ? `Welcome to ${session.destination}` : index === count - 1 ? "Favorites & a farewell dinner" : `Explore ${session.destination} at your own pace`,
+      description: "A flexible day of local food, neighborhood discoveries, and time together.",
+      stops: [
+        ["Breakfast", "Meet near the hotel for breakfast and coffee."], ["Plan your morning", "Pick a few nearby stops and confirm the transit route."],
+        ["Neighborhood walk", "Explore the streets and shops around your first stop."], ["Local highlights", "Choose a museum, park, or landmark that interests the group."],
+        ["Lunch", "Find a casual local restaurant with options for everyone."], ["Explore together", "Continue discovering the neighborhood at a relaxed pace."],
+        ["Free time", "Make space for individual wishlists and interests."], ["Coffee break", "Regroup at a café and rest your feet."],
+        ["Afternoon discovery", "Visit another nearby stop chosen by the group."], ["Hotel break", "Freshen up before heading out for the evening."],
+        ["Dinner", "Share a meal at a neighborhood restaurant."], ["Evening walk", "Enjoy the city after dark and take a few photos."],
+        ["Dessert", "Pick up something sweet and compare favorite moments."], ["Wind down", "Return to the hotel and get ready for tomorrow."],
+      ],
+    }
+    return { date, title: outline.title, description: outline.description, activities: outline.stops.map(([title, description], hour) => ({ time: `${String(hour + 8).padStart(2, "0")}:00`, title, description })) }
+  })
+}

@@ -1,0 +1,540 @@
+/* tastemaker · macrostructure: Long Scroll Narrative · mood: warm · page: landing
+ * arc: hook(H3) -> problem+solution+how(F3) -> mechanism(F6) -> fit(F1) -> proof(F5) -> range(F7) -> consensus(F2) -> close(C2)
+ * nav: N2 · hero: H3 · footer: Ft2 · knobs: hero=photo/left-bias; story=pinned/phone/thread; density=compact
+ * palette: preserved forest and sun system · contrast: pass pending final matrix
+ * critique: ShowTell 5 · Phil 4 · Hier 5 · Spec 5 · Restr 4 · Var 4 · ColorHarm 5 · MoodTone 5 · Type 4 · Spatial 4 · Pref 4 */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-forest: var(--forest);
+  --color-sun: var(--sun);
+  --color-accent-brand: var(--accent-brand);
+  --color-whatsapp: var(--whatsapp);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: oklch(0.972 0.012 105);
+  --foreground: oklch(0.22 0.026 158);
+  --card: oklch(0.988 0.008 105);
+  --card-foreground: oklch(0.22 0.026 158);
+  --popover: oklch(0.988 0.008 105);
+  --popover-foreground: oklch(0.22 0.026 158);
+  --primary: oklch(0.31 0.06 158);
+  --primary-foreground: oklch(0.98 0.01 105);
+  --secondary: oklch(0.925 0.02 112);
+  --secondary-foreground: oklch(0.26 0.035 158);
+  --muted: oklch(0.936 0.013 105);
+  --muted-foreground: oklch(0.45 0.024 158);
+  --accent: oklch(0.88 0.09 107);
+  --accent-foreground: oklch(0.25 0.05 158);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.84 0.023 112);
+  --input: oklch(0.84 0.023 112);
+  --ring: oklch(0.55 0.09 158);
+  --forest: oklch(0.27 0.065 158);
+  --sun: oklch(0.87 0.12 91);
+  --accent-brand: oklch(0.48 0.105 158);
+  --whatsapp: oklch(0.55 0.13 155);
+  --whatsapp-deep: oklch(0.36 0.085 166);
+  --whatsapp-paper: oklch(0.94 0.018 85);
+  --whatsapp-out: oklch(0.92 0.056 147);
+  --whatsapp-ink: oklch(0.23 0.018 155);
+  --device-black: oklch(0.12 0.012 158);
+  --device-edge: oklch(0.48 0.02 158);
+  --shadow-soft: 0 24px 80px color-mix(in oklch, var(--forest) 12%, transparent);
+  --shadow-phone: 0 42px 100px color-mix(in oklch, black 38%, transparent);
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  html {
+    @apply scroll-smooth font-sans;
+  }
+
+  body {
+    @apply min-w-80 bg-background text-foreground;
+  }
+
+  h1,
+  h2,
+  h3 {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  ::selection {
+    background: color-mix(in oklch, var(--sun) 68%, transparent);
+    color: var(--forest);
+  }
+}
+
+@layer components {
+  .hero-shade {
+    background: linear-gradient(
+      90deg,
+      color-mix(in oklch, var(--forest) 91%, transparent) 0%,
+      color-mix(in oklch, var(--forest) 62%, transparent) 46%,
+      color-mix(in oklch, var(--forest) 8%, transparent) 80%
+    );
+  }
+
+  .nav-link,
+  .footer-link {
+    @apply flex min-h-11 items-center whitespace-nowrap transition-[color] duration-200 outline-none focus-visible:ring-3 focus-visible:ring-ring/50;
+  }
+
+  .nav-link {
+    @apply hover:text-white;
+  }
+
+  .footer-link {
+    @apply hover:text-foreground;
+  }
+
+  .image-frame,
+  .planner-surface,
+  .destination {
+    @apply relative overflow-hidden rounded-2xl;
+  }
+
+  .planner-surface {
+    @apply border border-border bg-card;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .destination {
+    @apply min-h-80;
+  }
+
+  .destination-shade {
+    background: linear-gradient(
+      to top,
+      color-mix(in oklch, var(--forest) 80%, transparent),
+      transparent 65%
+    );
+  }
+
+  .status-complete,
+  .status-active {
+    @apply grid size-7 shrink-0 place-items-center rounded-full;
+  }
+
+  .status-complete {
+    @apply bg-accent text-accent-foreground;
+  }
+
+  .status-active {
+    @apply bg-forest text-sun;
+  }
+
+  .constraint-ledger {
+    @apply overflow-hidden border-y border-border;
+  }
+
+  .constraint-header,
+  .constraint-row {
+    @apply grid items-center gap-4 border-b border-border px-1;
+    grid-template-columns: 0.75fr 1fr 1fr 1.35fr;
+  }
+
+  .constraint-header {
+    @apply py-3 text-xs font-medium tracking-[0.1em] text-muted-foreground uppercase;
+  }
+
+  .constraint-row {
+    @apply py-5 text-sm;
+  }
+
+  .overlap-row {
+    @apply flex items-center gap-4 bg-card px-4 py-5;
+  }
+
+  .fit-note,
+  .live-note {
+    @apply absolute rounded-xl border border-white/20 bg-forest/90 text-white backdrop-blur-xl;
+    box-shadow: 0 18px 54px color-mix(in oklch, var(--forest) 30%, transparent);
+  }
+
+  .fit-note {
+    @apply right-4 bottom-4 left-4 p-5 sm:right-6 sm:bottom-6 sm:left-auto sm:w-[22rem];
+  }
+
+  .fit-note p span {
+    @apply mr-2 inline-block w-12 font-semibold text-sun;
+  }
+
+  .live-note {
+    @apply right-4 bottom-4 left-4 p-5 sm:right-6 sm:bottom-6 sm:left-auto sm:w-[23rem];
+  }
+
+  .decision-list {
+    @apply overflow-hidden rounded-2xl bg-forest text-white;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .decision-heading,
+  .decision-row {
+    @apply grid items-center gap-3 border-b border-white/12 px-5;
+    grid-template-columns: 0.65fr 1fr 1.2fr;
+  }
+
+  .decision-heading {
+    @apply py-3 text-xs tracking-[0.1em] text-white/48 uppercase;
+  }
+
+  .decision-row {
+    @apply py-4 text-sm;
+  }
+
+  .decision-response {
+    @apply flex items-center gap-2 text-sun;
+  }
+
+  .decision-ready {
+    @apply flex items-center gap-4 px-5 py-5;
+  }
+
+  .whatsapp-story {
+    position: relative;
+    z-index: 1;
+  }
+
+  .story-kicker {
+    @apply text-xs font-medium tracking-[0.16em] text-accent-brand uppercase;
+  }
+
+  .whatsapp-phone {
+    position: relative;
+    display: flex;
+    width: min(100%, 23.5rem);
+    aspect-ratio: 71.6 / 147.6;
+    flex-direction: column;
+    padding: 0.6rem;
+    border: 2px solid var(--device-edge);
+    border-radius: 3rem;
+    background: var(--device-black);
+    box-shadow: var(--shadow-phone);
+  }
+
+  .whatsapp-phone::before,
+  .whatsapp-phone::after {
+    position: absolute;
+    z-index: -1;
+    width: 0.25rem;
+    border-radius: 999px;
+    background: var(--device-edge);
+    content: "";
+  }
+
+  .whatsapp-phone::before {
+    top: 7rem;
+    left: -0.38rem;
+    height: 4.8rem;
+    box-shadow: 0 5.7rem 0 var(--device-edge);
+  }
+
+  .whatsapp-phone::after {
+    top: 9.25rem;
+    right: -0.38rem;
+    height: 5.5rem;
+  }
+
+  .dynamic-island {
+    position: absolute;
+    z-index: 10;
+    top: 1.1rem;
+    left: 50%;
+    display: flex;
+    width: 7.25rem;
+    height: 1.8rem;
+    transform: translateX(-50%);
+    align-items: center;
+    justify-content: flex-end;
+    border-radius: 999px;
+    background: var(--device-black);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, white 4%, transparent);
+  }
+
+  .dynamic-island span {
+    width: 0.48rem;
+    height: 0.48rem;
+    margin-right: 0.6rem;
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--ring) 45%, var(--device-black));
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, white 10%, transparent);
+  }
+
+  .whatsapp-header {
+    @apply flex min-h-[6.6rem] items-end gap-3 px-4 pt-11 pb-3 text-white;
+    border-radius: 2.35rem 2.35rem 0.7rem 0.7rem;
+    background: var(--whatsapp-deep);
+  }
+
+  .whatsapp-viewport {
+    position: relative;
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+    border-radius: 0 0 2.35rem 2.35rem;
+    background-color: var(--whatsapp-paper);
+  }
+
+  .iphone-home-indicator {
+    position: absolute;
+    z-index: 12;
+    bottom: 1rem;
+    left: 50%;
+    width: 5.25rem;
+    height: 0.28rem;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--device-black) 82%, transparent);
+  }
+
+  .hero-phone {
+    width: min(100%, 22rem);
+    transform: rotate(1.5deg);
+  }
+
+  .hero-phone .whatsapp-header {
+    min-height: 6rem;
+  }
+
+  .hero-phone .whatsapp-track {
+    will-change: auto;
+  }
+
+  .whatsapp-track {
+    @apply p-4 text-sm;
+    color: var(--whatsapp-ink);
+    will-change: transform;
+  }
+
+  .chat-date {
+    @apply mx-auto mb-4 w-fit rounded-md px-2.5 py-1 text-[0.65rem] font-medium;
+    background: color-mix(in oklch, white 72%, var(--whatsapp-paper));
+    color: color-mix(in oklch, var(--whatsapp-ink) 62%, transparent);
+  }
+
+  .message-row {
+    position: relative;
+    width: fit-content;
+    max-width: 88%;
+    margin-bottom: 0.65rem;
+    padding: 0.65rem 0.75rem 1.15rem;
+    border-radius: 0.75rem;
+    line-height: 1.45;
+    box-shadow: 0 2px 8px color-mix(in oklch, var(--forest) 8%, transparent);
+  }
+
+  .message-in,
+  .message-fare {
+    @apply bg-white;
+    border-top-left-radius: 0.25rem;
+  }
+
+  .message-out {
+    margin-left: auto;
+    background: var(--whatsapp-out);
+    border-top-right-radius: 0.25rem;
+  }
+
+  .message-author {
+    @apply mb-1 block text-xs font-semibold;
+    color: var(--whatsapp-deep);
+  }
+
+  .message-time {
+    position: absolute;
+    right: 0.65rem;
+    bottom: 0.35rem;
+    font-size: 0.6rem;
+    color: color-mix(in oklch, var(--whatsapp-ink) 48%, transparent);
+  }
+
+  .message-out strong {
+    color: var(--whatsapp-deep);
+  }
+
+  .bot-working {
+    @apply mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium;
+    background: color-mix(in oklch, var(--whatsapp) 10%, white);
+    color: var(--whatsapp-deep);
+  }
+
+  .result-card {
+    @apply mb-3 grid items-center gap-3 rounded-xl border p-3;
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    border-color: color-mix(in oklch, var(--whatsapp-deep) 18%, transparent);
+    background: color-mix(in oklch, white 94%, var(--whatsapp-paper));
+    box-shadow: 0 8px 24px color-mix(in oklch, var(--forest) 8%, transparent);
+  }
+
+  .result-icon {
+    @apply grid size-8 place-items-center rounded-lg;
+    background: color-mix(in oklch, var(--whatsapp) 12%, white);
+    color: var(--whatsapp-deep);
+  }
+
+  .result-label {
+    @apply text-[0.65rem] font-semibold tracking-[0.08em] uppercase;
+    color: var(--whatsapp-deep);
+  }
+
+  .result-title {
+    @apply mt-0.5 font-semibold;
+  }
+
+  .result-meta {
+    @apply mt-0.5 text-xs;
+    color: color-mix(in oklch, var(--whatsapp-ink) 64%, transparent);
+  }
+
+  .message-final {
+    margin-bottom: 1rem;
+  }
+
+  .shared-plan-link {
+    @apply mt-3 flex items-center justify-between rounded-lg px-3 py-2.5 font-semibold;
+    background: var(--whatsapp-deep);
+    color: white;
+  }
+}
+
+@media (max-width: 47.99rem) {
+  .hero-shade {
+    background: linear-gradient(
+      90deg,
+      color-mix(in oklch, var(--forest) 88%, transparent),
+      color-mix(in oklch, var(--forest) 48%, transparent)
+    );
+  }
+
+  .whatsapp-stage {
+    align-content: center;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .whatsapp-story .whatsapp-phone {
+    width: min(100%, 18rem);
+  }
+
+  .story-copy > p:not(.story-kicker) {
+    display: none;
+  }
+
+  .story-copy h2 {
+    max-width: 15ch;
+  }
+
+  .story-copy > div:last-of-type,
+  .story-copy > p:last-child {
+    display: none;
+  }
+
+  .constraint-header {
+    display: none;
+  }
+
+  .constraint-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem 1.5rem;
+  }
+
+  .constraint-row strong {
+    grid-column: 1 / -1;
+    font-size: 1rem;
+  }
+
+  .constraint-row span::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.15rem;
+    color: var(--muted-foreground);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .decision-heading,
+  .decision-row {
+    grid-template-columns: 0.65fr 1.35fr;
+  }
+
+  .decision-heading span:last-child,
+  .decision-response {
+    grid-column: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .whatsapp-stage {
+    min-height: auto;
+  }
+
+  .whatsapp-phone {
+    aspect-ratio: auto;
+    transform: none;
+  }
+
+  .whatsapp-viewport {
+    height: auto;
+    overflow: visible;
+  }
+
+  .whatsapp-track {
+    transform: none !important;
+    will-change: auto;
+  }
+}

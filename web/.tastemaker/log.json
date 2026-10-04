@@ -1,0 +1,12 @@
+[
+  {
+    "date": "2026-10-03",
+    "page": "landing",
+    "macrostructure": "Long Scroll Narrative",
+    "nav": "N2",
+    "hero": "H3",
+    "footer": "Ft2",
+    "knobs": "hero=photo/left-bias; story=F3/pinned/iPhone; density=compact; gallery=5-7-grid",
+    "brief": "Fare: AI group travel planning inside WhatsApp"
+  }
+]
