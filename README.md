@@ -1,8 +1,9 @@
 # Fare
 
-Fare is a landing-page prototype for an AI group travel planner that lives in
-WhatsApp. It turns a group's dates, budgets, and preferences into one shared
-trip recommendation—without making one person manage the planning spreadsheet.
+Fare is the frontend for an AI group travel planner that lives in WhatsApp.
+It includes an illustrative landing page and a live dashboard connected to the
+Go orchestrator. It turns a group's dates, budgets, and preferences into one
+shared trip recommendation.
 
 The experience follows a sample group trip from the first chat messages through
 flight, stay, activity, and group-approval recommendations.
@@ -36,6 +37,7 @@ flight, stay, activity, and group-approval recommendations.
 ### Install and run
 
 ```bash
+cd web
 npm install
 npm run dev
 ```
@@ -56,16 +58,18 @@ npm run format     # Format TypeScript and TSX files with Prettier
 ## Project structure
 
 ```text
-app/
-  globals.css            Design tokens, components, and responsive styles
-  layout.tsx             Fonts and page metadata
-  page.tsx               Main landing page
-components/
-  reveal.tsx             Reusable entrance animations
-  whatsapp-story.tsx     Scroll-driven product story
-  ui/                    Shared interface primitives
-public/images/           Landing-page imagery
-lib/                     Shared utilities
+web/
+  app/
+    page.tsx                         Illustrative landing page
+    dashboard/[groupId]/             Group sessions and trip history
+      [sessionId]/                   Live session dashboard
+  components/session/                Browser previews, results, progress, plan
+  components/dashboard/              Group dashboard and session notifications
+  hooks/                             Group and session event subscriptions
+  lib/api/                           Orchestrator HTTP and WebSocket clients
+  lib/session-snapshot.ts            Snapshot merging and browser event handling
+  types/                             Dashboard, session, and service contracts
+  public/images/                     Landing-page imagery
 ```
 
 ## Notes
@@ -75,15 +79,50 @@ the Go backend’s real group planning workflow.
 
 ## Live group dashboard
 
-Open `/dashboard/{groupId}` using the actual WhatsApp group ID. The page connects
-to the Go orchestrator's group WebSocket. A bot planning trigger creates a session,
-shows a popup, and links to `/dashboard/{groupId}/{sessionId}`. The session page
-follows the backend's searches, browser frames, planning checkpoints, and saved
-itinerary; opening a page never launches additional searches.
+### Ownership and end-to-end flow
 
-The backend waits for the group's destination choice before searching. Searches
-run concurrently. The final plan has expandable days with timed local activities.
-Reconnects receive a fresh saved snapshot instead of restarting paid work.
+The three sibling repositories have distinct responsibilities:
+
+| Repository                  | Responsibility                                                                                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `fare-frontend`             | Render group sessions, live browser previews, offers, planner progress, and the final itinerary.                                                 |
+| `fare-orchestrator-service` | Own the chat-driven trip workflow, start searches, select offers with Gemini, save dashboard snapshots, and broadcast group events.              |
+| `travel-search-services`    | Run separate Python flight/hotel workers with Skyvern browsers, extract offers, save results, and produce browser frames and recording metadata. |
+
+```text
+WhatsApp/Telegram message → Go orchestrator → flight and hotel Python bridges
+                                               ↓
+                                         Skyvern browsers
+                                               ↓
+Frontend ← group WebSocket ← Go orchestrator ← frames, progress, saved results
+```
+
+1. A planning message in the group chat creates a dashboard session. The group
+   page at `/dashboard/{groupId}` receives it and shows a notification linking to
+   `/dashboard/{groupId}/{sessionId}`. Use the actual group ID and backend-created
+   session ID; URL segments are encoded when constructing API requests.
+2. The orchestrator collects preferences and waits for the group's destination
+   choice. A `created` session can legitimately have no search or browser yet.
+3. After the choice, the orchestrator starts flight and hotel searches
+   concurrently. Each service request uses the dashboard session ID as
+   `session_id`; the worker supplies its own `search_id` and browser session ID.
+4. Workers open Skyvern browsers and emit preview/progress events during
+   navigation and extraction. The Go backend forwards these to the group's
+   WebSocket with `agentType: "flight"` or `"hotel"`.
+5. Workers finalize browser cleanup, recording handling, and result persistence
+   before returning `search.result`. An earlier `search.status: complete` means
+   extraction finished; the orchestrator still waits for the saved result.
+6. Once both searches return usable offers, Gemini selects a flight/hotel
+   combination and generates the day-by-day itinerary. Planner checkpoints and
+   the saved plan arrive through dashboard snapshots.
+7. `session.completed` means the plan is ready for group approval. It does not
+   mean travel has been booked. A failed search or planner failure interrupts the
+   session and returns the chat workflow to destination choice for a retry.
+
+Opening a dashboard, mounting a component, or reconnecting must never launch or
+resubmit a search. The frontend observes work initiated by the chat workflow.
+
+### Local streaming configuration
 
 Configure `web/.env.local` from `web/.env.example`:
 
@@ -92,8 +131,8 @@ NEXT_PUBLIC_ORCHESTRATOR_URL=http://localhost:8000
 NEXT_PUBLIC_ORCHESTRATOR_WS_URL=ws://localhost:8000
 ```
 
-The frontend no longer connects directly to the individual travel-service
-bridges. Configure their URLs on the Go backend instead:
+The active dashboard connects only to the Go backend. Configure these values in
+`fare-orchestrator-service/.env`, not the frontend environment:
 
 ```dotenv
 DASHBOARD_URL=http://localhost:3000
@@ -104,17 +143,160 @@ HOTEL_SERVICE_WS_URL=ws://127.0.0.1:8766
 SEARCH_FRONTEND_ORIGIN=http://localhost:3000
 ```
 
-Both Python bridges support `WS_PORT`, retaining 8765 as the default. Run the
-flight bridge on 8765 and the hotel bridge with `WS_PORT=8766`, using each service's
-own environment and credentials. The Go backend can alternatively use the
-services' Lambda HTTP URLs for results, but those calls do not provide live frames.
-Restart the Go orchestrator after changing these URLs, and restart a Python
-bridge after changing its service code. Running bridges alone does not enable
-streaming while the orchestrator's WebSocket URLs are empty.
+The flight bridge binds to `127.0.0.1:8765`. The hotel bridge defaults to
+`127.0.0.1:8766` and accepts a `WS_PORT` override. Both allow the local frontend
+origins on ports 3000 and 8080. `SEARCH_FRONTEND_ORIGIN` is the Origin header the
+Go backend uses when connecting to the bridges.
+
+Run four terminals. Each example below starts from the `fare-frontend` repository
+root and assumes the sibling repositories and Python virtual environment already
+exist. Populate the backend/service environment files first; keep all Skyvern,
+Gemini, Mongo, and AWS credentials out of `NEXT_PUBLIC_*` variables.
+
+Frontend:
+
+```bash
+cd web
+npm run dev
+```
+
+Go orchestrator:
+
+```bash
+cd ../fare-orchestrator-service
+go run .
+```
+
+Flight bridge, using the travel services' root environment:
+
+```bash
+cd ../travel-search-services/flight-service
+set -a
+source ../.env
+set +a
+../.venv/bin/python websocket_test_server.py
+```
+
+Hotel bridge, using its separate hotel environment:
+
+```bash
+cd ../travel-search-services/hotel-service
+set -a
+source .env
+set +a
+WS_PORT=8766 ../.venv/bin/python websocket_test_server.py
+```
+
+These are startup instructions for the user, not permission for agents to run
+builds or verification. Restart the Go orchestrator after changing its `.env` or
+Go code. Restart the affected Python bridge after changing its environment or
+service code. Restart Next.js after changing its public environment variables.
+
+When `FLIGHT_SERVICE_WS_URL` / `HOTEL_SERVICE_WS_URL` are empty, the orchestrator
+instead POSTs to `FLIGHT_SERVICE_URL` / `HOTEL_SERVICE_URL` (Lambda HTTP endpoints).
+That path returns final results and does not provide live browser frames.
+Running the Python bridges alone does not switch the orchestrator to streaming.
+There is no automatic HTTP fallback when a configured bridge fails to connect.
+
+The optional HTTP-mode `ORCHESTRATOR_PUBLIC_URL` enables final result callbacks
+at `POST /travel-search/results/{requestID}`. It does not enable browser streaming.
+Local Python source changes affect the bridges after restart; deployed Lambdas
+need their own deployment to receive those changes.
 
 `MOCK_TRAVEL=true` on the backend provides mock travel offers with real workflow
-events; Gemini still needs its configured key. No frontend mock events or sample
-group history are used in the dashboard. Saved snapshots retain up to 20 sessions
-per group, using Mongo when configured. Browser frames are not stored.
+events, without real Skyvern previews. `MOCK_LLM=false` requires the configured
+Gemini key. No frontend mock events or sample group history drive the dashboard.
+For a hosted HTTPS frontend, configure a reachable HTTPS orchestrator and WSS
+group endpoint; the loopback Python bridges belong on the orchestrator's host.
 
-See the Go backend's README for the endpoints and event contract.
+### Frontend data flow and files
+
+| File                                                                                   | Role                                                                                                                                                               |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [group-socket.ts](web/lib/api/group-socket.ts)                                         | Shares one WebSocket per group across subscribers, caches snapshots and browser updates, retries connections, and delivers the cached snapshot to new subscribers. |
+| [sessions.ts](web/lib/api/sessions.ts)                                                 | Reads group history and individual session snapshots over HTTP.                                                                                                    |
+| [use-group-events.ts](web/hooks/use-group-events.ts)                                   | Updates group history and new-session notifications; falls back to HTTP polling while disconnected.                                                                |
+| [session-loader.tsx](web/components/session/session-loader.tsx)                        | Loads the selected session through HTTP and group snapshots, then mounts its dashboard.                                                                            |
+| [use-session-events.ts](web/hooks/use-session-events.ts)                               | Subscribes by stable group/session IDs, merges authoritative snapshots, and applies live browser updates.                                                          |
+| [session-snapshot.ts](web/lib/session-snapshot.ts)                                     | Rejects older session revisions and retains a last frame across snapshot updates only when its browser session ID matches.                                         |
+| [session-dashboard.tsx](web/components/session/session-dashboard.tsx)                  | Shows agent tabs, search results/errors, planning tasks, activity, and the final itinerary.                                                                        |
+| [live-browser.tsx](web/components/session/live-browser.tsx)                            | Renders JPEG data URLs and preview status, retaining the final frame after streaming ends.                                                                         |
+| [dashboard.ts](web/types/dashboard.ts), [travel-search.ts](web/types/travel-search.ts) | Define the dashboard envelope, snapshots, nested service events, and browser preview types.                                                                        |
+
+The direct-service helpers in `web/lib/api/travel-search.ts`, `flights.ts`, and
+`hotels.ts` and fixtures under `web/lib/mock/` are not the active group dashboard
+flow. Follow `group-socket.ts` and the hooks above when changing live behavior.
+
+### Endpoints, events, and preview state
+
+| Go endpoint                                  | Purpose                                        |
+| -------------------------------------------- | ---------------------------------------------- |
+| `GET /groups/{groupId}/events`               | WebSocket; immediately sends `group.snapshot`. |
+| `GET /groups/{groupId}/sessions`             | Returns the group's saved session snapshots.   |
+| `GET /groups/{groupId}/sessions/{sessionId}` | Returns one session within that group.         |
+
+Dashboard events use `version: 1`, `type`, `groupId`, and `revision`; session
+events also carry `sessionId`. Normal workflow events include an authoritative
+`snapshot`. Browser events instead carry `agentType` and a nested `event` from
+the Python worker, whose IDs use snake case (`session_id`, `search_id`,
+`browser_session_id`). Do not confuse the outer dashboard envelope with the
+nested service event.
+
+| Dashboard event                                                                    | Frontend behavior                                                                                            |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `group.snapshot`                                                                   | Load/reconcile group sessions and the selected session.                                                      |
+| `session.started`, `session.updated`                                               | Update session metadata and group notifications.                                                             |
+| `flight_search.*`, `hotel_search.*` (`started`, `progress`, `completed`, `failed`) | Update agent status/messages and saved offers; failures retain the specific agent error.                     |
+| `agent.browser.live_view`                                                          | Store the optional Skyvern dashboard link; it is not an embedded video stream and may require Skyvern login. |
+| `agent.browser.stream`                                                             | Update preview status: `starting`, `live`, `ended`, or `unavailable`.                                        |
+| `agent.browser.frame`                                                              | Render nested `image/jpeg` base64 data as `data:image/jpeg;base64,...`.                                      |
+| `flight_search.recording.completed`, `hotel_search.recording.completed`            | Backend stores recording completion metadata; this is separate from the live JPEG feed.                      |
+| `planning.started`, `planning.task.updated`, `planning.completed`                  | Update planner checkpoints and the final plan.                                                               |
+| `session.completed`, `session.failed`                                              | Display the final session outcome and any session error.                                                     |
+
+Previews are indexed by agent and origin: flight airport code or hotel
+`booking_com`. Match `browser_session_id` before carrying a frame into a new
+snapshot. Keep subscriptions keyed to group/session identity; depending on the
+entire changing snapshot causes unnecessary subscription resets.
+
+Saved dashboard history retains up to 20 sessions per group, with Mongo when
+configured. JPEG frames are stripped from Mongo persistence; an active Go process
+and the frontend cache can retain the latest frame in memory. Reconnection reads
+a fresh snapshot, not a replay of past frames. A completed search viewed after
+a restart may therefore have results and preview metadata but no image.
+Preview failures do not by themselves mean the travel search failed.
+
+### Known fixes and troubleshooting
+
+| Symptom                                              | Cause / relevant path                                                                                                                                                                            |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Results arrive but no live browser appears           | Empty orchestrator service WebSocket URLs select Lambda HTTP mode. Configure both bridge URLs and restart Go before the next chat-triggered search.                                              |
+| Preview disappears during progress updates           | Preserve browser events in the shared cache and merge snapshots with `mergeSessionSnapshot`; keep the hook subscription independent of changing snapshot props.                                  |
+| Hotel search rejects a seven-night stay              | Booking.com can label it `1 week` instead of `7 nights`. `hotel-service/booking.py` now converts weeks to nights while still checking requested dates, adult count, hotel links, and CAD totals. |
+| Generic session interruption hides the agent failure | Go emits `flight_search.failed` / `hotel_search.failed`; the dashboard shows the agent's message below the selected browser. Hotel `ValueError` messages are included in the result's error.     |
+| Old searches do not show newly enabled streaming     | Frames are emitted only while the worker is searching. Configuration changes apply to subsequent searches; do not automatically rerun old paid work.                                             |
+| Results take longer than the browser activity        | Browser cleanup, recording readiness/upload, and Mongo persistence happen before the final result arrives.                                                                                       |
+
+The week-format hotel fix and preview/configuration fixes were implemented
+without post-change tests or live searches. The user owns verification; do not
+describe these changes as tested.
+
+### Instructions for agents
+
+- Read root [AGENTS.md](AGENTS.md) and [web/AGENTS.md](web/AGENTS.md) before edits.
+  Consult the installed Next.js guides required by `web/AGENTS.md` for Next.js
+  code changes.
+- Do not add authentication or console/debug logs for this hackathon.
+- Do not run QA, tests, lint, type checks, builds, browser sessions, or post-change
+  verification unless the user explicitly requests them. Startup commands in
+  this README do not override that rule.
+- Keep search initiation in the chat/orchestrator workflow. Frontend subscriptions
+  and reconnects must remain observational.
+- Keep credentials on the backend and preserve session, search, revision, and
+  browser-session correlation when modifying event handling.
+
+For backend changes, read the sibling orchestrator's `README.md`,
+`orchestrator/dashboard.go`, `tools/search_transport.go`, and
+`dashboard/manager.go`. For worker changes, read the travel services' READMEs,
+each service's `websocket_test_server.py`, `service.py`, and `live_browser.py`;
+hotel extraction is in `hotel-service/booking.py`.
