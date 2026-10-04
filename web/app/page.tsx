@@ -73,6 +73,11 @@ const approvals = [
 export default function Page() {
   return (
     <main className="overflow-clip bg-background text-foreground">
+      <div
+        className="relative bg-forest p-3 sm:p-4"
+        style={{ clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 4rem), 0 100%)" }}
+      >
+      <div className="relative overflow-hidden rounded-[1.75rem] bg-background pb-24 sm:rounded-[2.25rem] sm:pb-32">
       <header className="absolute inset-x-0 top-0 z-20 h-18">
         <nav
           aria-label="Primary navigation"
@@ -99,14 +104,14 @@ export default function Page() {
           <Button
             render={<a href="/dashboard" />}
             nativeButton={false}
-            className="h-10 bg-forest px-4 text-primary-foreground hover:bg-forest/90"
+            className="h-10 rounded-full bg-secondary px-4 text-forest hover:bg-secondary/80"
           >
             Open dashboard
           </Button>
         </nav>
       </header>
 
-      <section id="top" className="relative min-h-[100dvh] overflow-hidden">
+      <section id="top" className="relative min-h-[calc(100dvh-1.5rem)] sm:min-h-[calc(100dvh-2rem)]">
         <div className="hero-glow" aria-hidden="true" />
         <div className="hero-globe" aria-hidden="true">
           <div className="hero-globe-spin">
@@ -161,12 +166,12 @@ export default function Page() {
             brings one best-fit trip back to the chat.
           </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="hero-cta">
             <Button
               render={<a href="#how-it-works" />}
               nativeButton={false}
               size="lg"
-              className="h-12 bg-sun px-5 text-forest hover:bg-sun/90"
+              className="h-11 rounded-full bg-forest px-6 text-primary-foreground hover:bg-forest/90"
             >
               Follow the chat
               <ArrowRight data-icon="inline-end" strokeWidth={1.8} />
@@ -175,14 +180,18 @@ export default function Page() {
               render={<a href="#destinations" />}
               nativeButton={false}
               size="lg"
-              variant="outline"
-              className="h-12 border-border bg-card/70 px-5 text-foreground backdrop-blur-md hover:bg-card"
+              variant="ghost"
+              className="h-11 rounded-full px-6 text-foreground hover:bg-muted"
             >
               See trip ideas
             </Button>
           </div>
         </div>
       </section>
+      </div>
+        <div aria-hidden="true" className="absolute top-0 left-0 z-10 h-16 w-52 rounded-br-2xl bg-forest sm:h-20 sm:w-60" />
+        <div aria-hidden="true" className="absolute top-0 right-0 z-10 h-16 w-52 rounded-bl-2xl bg-forest sm:h-20 sm:w-60" />
+      </div>
 
       <WhatsAppStory />
 
@@ -320,7 +329,7 @@ export default function Page() {
 
       <section
         id="live-plan"
-        className="px-4 py-16 sm:px-6 md:py-20 lg:px-10 lg:py-24"
+        className="flow-dark mx-4 rounded-[2.5rem] bg-forest px-4 py-16 sm:mx-6 sm:rounded-[3.5rem] sm:px-6 md:py-20 lg:mx-10 lg:px-10 lg:py-24"
         aria-labelledby="live-plan-title"
       >
         <div className="mx-auto max-w-[1400px]">
