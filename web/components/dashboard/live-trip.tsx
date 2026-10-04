@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { IconBrandWhatsapp, IconMapPin, IconSend } from "@tabler/icons-react"
+import { IconBrandWhatsapp, IconChevronDown, IconMapPin, IconSend } from "@tabler/icons-react"
 import { actOnTrip, getTrip, type TripView } from "@/lib/api/live-trip"
 import { ActivityEditor, useItineraryEdits } from "@/components/session/activity-editor"
 import { ExpenseTracker } from "./expense-tracker"
@@ -115,7 +115,17 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
         {itineraryEditable && trip.can_undo_activity_edit && <button type="button" disabled={itineraryEdits.busy} onClick={() => void itineraryEdits.undo(trip.itinerary_revision ?? 0)} className="rounded-full border border-border px-3 py-1.5 text-xs disabled:opacity-50">Undo last edit</button>}
         {itineraryEdits.error && <p role="alert" className="text-sm text-destructive">{itineraryEdits.error}</p>}
         {(trip.days ?? []).length === 0 && <div className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">No day-by-day yet. Tag Fare in WhatsApp and ask for the plan — it will show up here.</div>}
-        {(trip.days ?? []).map((day, i) => <article key={`${day.title}-${i}`} className="rounded-2xl border border-border bg-card p-5"><h2 className="font-semibold">{day.title}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground whitespace-pre-wrap">{day.body}</p>{!!day.activities?.length && <ol className="mt-4 space-y-4">{day.activities.map((activity, index) => <li key={activity.id || index} className="flex gap-3 border-t border-border pt-4"><time className="w-12 shrink-0 text-xs text-primary">{activity.time}</time><div className="min-w-0 flex-1"><ActivityEditor activity={activity} revision={trip.itinerary_revision ?? 0} editable={itineraryEditable} busy={itineraryEdits.busy} onSave={itineraryEdits.save} pendingReplacement={trip.pending_activity_replacement} replacementActions={itineraryEdits} /></div></li>)}</ol>}{day.food_cad != null && <p className="mt-3 text-xs text-primary">Meals about {cad(day.food_cad)} each, not booked.</p>}</article>)}
+        {(trip.days ?? []).map((day, i) => <details key={`${day.title}-${i}`} className="group/day rounded-2xl border border-border bg-card">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+            <h2 className="font-semibold">{day.title}</h2>
+            <IconChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open/day:rotate-180" />
+          </summary>
+          <div className="border-t border-border px-5 pt-4 pb-5">
+            {day.body && <p className="text-sm leading-6 text-muted-foreground whitespace-pre-wrap">{day.body}</p>}
+            {!!day.activities?.length && <ol className="mt-4 space-y-4">{day.activities.map((activity, index) => <li key={activity.id || index} className="flex gap-3 border-t border-border pt-4"><time className="w-12 shrink-0 text-xs text-primary">{activity.time}</time><div className="min-w-0 flex-1"><ActivityEditor activity={activity} revision={trip.itinerary_revision ?? 0} editable={itineraryEditable} busy={itineraryEdits.busy} onSave={itineraryEdits.save} pendingReplacement={trip.pending_activity_replacement} replacementActions={itineraryEdits} /></div></li>)}</ol>}
+            {day.food_cad != null && <p className="mt-3 text-xs text-primary">Meals about {cad(day.food_cad)} each, not booked.</p>}
+          </div>
+        </details>)}
       </div>
       <aside className="space-y-3">
         <div className="rounded-2xl bg-forest p-5 text-primary-foreground"><p className="text-xs tracking-widest uppercase text-sun">Stay</p><p className="mt-2 text-2xl font-semibold">{(trip.hotels ?? []).find(h => h.selected)?.name || "Not chosen"}</p><p className="mt-2 text-sm opacity-80">{trip.nights ? `${trip.nights} nights` : "Dates come from the chat"}</p>{(trip.hotels ?? []).find(h => h.selected)?.reason && <p className="mt-3 text-xs leading-5 opacity-80">{(trip.hotels ?? []).find(h => h.selected)?.reason}</p>}</div>

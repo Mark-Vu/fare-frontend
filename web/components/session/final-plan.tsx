@@ -63,7 +63,7 @@ export function FinalPlan({ plan: incomingPlan, session }: { plan: Plan; session
       {edits.error && <p role="alert" className="mt-3 text-sm text-destructive">{edits.error}</p>}
       <p className="mt-1 text-xs leading-5 text-muted-foreground">All times are local to {session.destination}. Open or close each day at your own pace.</p>
       <div className="mt-5 space-y-3">
-        {plan.days.map((day, index) => <details key={day.date} open={index === 0} className="group/day overflow-hidden rounded-xl border border-border">
+        {plan.days.map((day, index) => <details key={day.date} className="group/day overflow-hidden rounded-xl border border-border">
           <summary className="flex cursor-pointer list-none items-start gap-3 bg-secondary/30 px-4 py-5 outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
             <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">{String(index + 1).padStart(2, "0")}</span>
             <div className="min-w-0 flex-1"><p className="text-[10px] font-medium tracking-wide text-primary uppercase">Day {index + 1} · {dayDate(day.date)}</p><h5 className="mt-1 text-sm font-semibold">{day.title}</h5><p className="mt-1 text-xs leading-5 text-muted-foreground">{day.description}</p></div>

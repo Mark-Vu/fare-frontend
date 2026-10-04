@@ -34,11 +34,14 @@ function ledgerUrl(groupId: string, sessionId: string) {
 }
 async function readLedger(response: Response): Promise<LedgerView> {
   if (!response.ok) {
-    let message = "Could not load or save expenses."
+    const raw = await response.text()
+    let message = `Could not load or save expenses (${response.status}).`
     try {
-      const body = await response.json() as { error?: string }
+      const body = JSON.parse(raw) as { error?: string }
       message = body.error || message
-    } catch { /* Keep the fallback for non-JSON responses. */ }
+    } catch {
+      if (raw.trim()) message = `${message} ${raw.trim().slice(0, 180)}`
+    }
     throw new ExpenseError(message, response.status)
   }
   return response.json() as Promise<LedgerView>

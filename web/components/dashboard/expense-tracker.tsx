@@ -34,10 +34,14 @@ export function ExpenseTracker({ groupId, sessionId }: { groupId: string; sessio
 
   const applyLedger = useCallback((next: LedgerView) => {
     if (!mounted.current) return
-    setLedger(current => current && current.revision > next.revision ? current : next)
-    if (!initialized.current && next.members.length) {
+    const members = next.members ?? []
+    const expenses = next.expenses ?? []
+    const balances = next.balances ?? []
+    const normalized = { ...next, members, expenses, balances }
+    setLedger(current => current && current.revision > normalized.revision ? current : normalized)
+    if (!initialized.current && members.length) {
       initialized.current = true
-      setDraft(current => ({ ...current, members: next.members.map(member => member.id) }))
+      setDraft(current => ({ ...current, members: members.map(member => member.id) }))
     }
   }, [])
   const load = useCallback(async (signal?: AbortSignal) => {
@@ -121,7 +125,8 @@ export function ExpenseTracker({ groupId, sessionId }: { groupId: string; sessio
     {!ledger && !loadError && <p className="mt-4 text-sm text-muted-foreground">Loading expenses…</p>}
     {ledger && <>
       {!writable && <p className="mt-4 text-sm text-muted-foreground">Expenses for this trip are read-only.</p>}
-      {writable && <form className="mt-5 space-y-4" onSubmit={async e => {
+      {writable && members.length === 0 && <p className="mt-4 text-sm text-muted-foreground">No one from this group is on the expense list yet. Once people are on the trip, you can record who paid.</p>}
+      {writable && members.length > 0 && <form className="mt-5 space-y-4" onSubmit={async e => {
         e.preventDefault()
         const saved = await mutate({ action: "add", actor_id: actor, description: draft.description.trim(), amount: draft.amount.trim(), payer_id: draft.payer, member_ids: draft.members })
         if (saved && mounted.current) setDraft({ description: "", amount: "", payer: "", members: saved.members.map(member => member.id) })
