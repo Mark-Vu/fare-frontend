@@ -9,6 +9,7 @@ import { useSessionEvents } from "@/hooks/use-session-events"
 import { planningTasks } from "@/lib/planning-tasks"
 import { tripDates } from "@/lib/trip-format"
 import { groupPathId } from "@/lib/group-id"
+import { orchestratorUrl } from "@/lib/api/group-socket"
 import type { StepStatus } from "@/types/session"
 import type { SessionSnapshot } from "@/types/dashboard"
 import { LiveBrowser } from "./live-browser"
@@ -40,16 +41,42 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
   const state = useSessionEvents(snapshot)
   const session = state.session
   const [agent, setAgent] = useState<"flight" | "hotel">("flight")
+  const [retrying, setRetrying] = useState(false)
+  const [retryError, setRetryError] = useState<string | null>(null)
   const completed = state.status === "completed"
   const failed = state.status === "failed"
   const searchesDone = state.flight === "completed" && state.hotel === "completed"
-  const searchStatus: StepStatus = searchesDone ? "completed" : failed ? "failed" : state.status === "created" ? "pending" : "running"
+  const flightFailed = state.flight === "failed"
+  const searchStatus: StepStatus = searchesDone ? "completed" : flightFailed || state.hotel === "failed" || failed ? "failed" : state.status === "created" ? "pending" : "running"
   const browserStatus = agent === "flight" ? state.flight : state.hotel
-  const sessionStepStatus: StepStatus = completed ? "completed" : failed ? "failed" : "running"
+  const sessionStepStatus: StepStatus = completed ? "completed" : failed || flightFailed ? "failed" : "running"
   const plannerStatus: StepStatus = state.planning === "pending" && !failed && !completed && (searchesDone || state.status === "planning") ? "running" : state.planning
   const plannerStarted = plannerStatus !== "pending" || state.status === "planning" || completed
   const readyStatus: StepStatus = completed ? "completed" : failed ? "failed" : plannerStarted ? "running" : "pending"
   const readyDescription = completed ? "Your group’s next adventure is ready. Open any day to see the full schedule." : failed ? "Planning was interrupted. Check the latest update before trying again." : state.plan ? "Finalizing your itinerary and saving your complete trip plan." : readyStatus === "running" ? "Preparing your complete trip plan as your daily schedule comes together." : "Your complete plan will appear here, with each day mapped out."
+  const searchDescription = searchesDone
+    ? "Your agents have finished the research. Flight and hotel options are ready."
+    : flightFailed
+      ? "Flight search did not finish. Retry it here once the airports and dates look right."
+      : state.status === "created"
+        ? "Choose your destination in the group chat. Your agents will start searching here automatically."
+        : "Your flight and hotel agents are searching together for your trip dates."
+
+  async function retryFlights() {
+    setRetrying(true)
+    setRetryError(null)
+    try {
+      const response = await fetch(`${orchestratorUrl}/groups/${encodeURIComponent(session.groupId)}/sessions/${encodeURIComponent(session.id)}/retry-flight`, { method: "POST" })
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({})) as { error?: string }
+        throw new Error(body.error || "Could not retry the flight search.")
+      }
+    } catch (err) {
+      setRetryError(err instanceof Error ? err.message : "Could not retry the flight search.")
+    } finally {
+      setRetrying(false)
+    }
+  }
 
   return <div className="mx-auto max-w-4xl">
     <Link href={`/dashboard/${groupPathId(session.groupId)}`} className="mb-7 inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary"><IconArrowLeft className="size-4" />All group trips</Link>
@@ -61,7 +88,7 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
     {state.error && <div role="alert" className="mb-5 rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">{state.error}</div>}
 
     <ol aria-label="Trip planning steps">
-      <FlowStep number={1} title="Finding flights & stays" description={searchesDone ? "Your agents have finished the research. Flight and hotel options are ready." : state.status === "created" ? "Choose your destination in the group chat. Your agents will start searching here automatically." : "Your flight and hotel agents are searching together for your trip dates."} status={searchStatus}>
+      <FlowStep number={1} title="Finding flights & stays" description={searchDescription} status={searchStatus}>
         <details open className="group rounded-2xl border border-border bg-card">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
             <span>{searchesDone ? "View agent research & results" : "Follow the agents live"}</span><IconChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
@@ -73,6 +100,7 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
             </div>
             <LiveBrowser status={browserStatus} agentType={agent} previews={state.previews[agent]} recording={state.recordings?.[agent]} />
             <p role={browserStatus === "failed" ? "alert" : "status"} className={`text-xs leading-5 ${browserStatus === "failed" ? "text-destructive" : "text-muted-foreground"}`}>{agent === "flight" ? state.flightMessage : state.hotelMessage}</p>
+            {flightFailed && <div className="flex flex-wrap items-center gap-3"><Button size="sm" disabled={retrying} onClick={() => void retryFlights()}>{retrying ? "Retrying flights…" : "Retry flight search"}</Button>{retryError && <p role="alert" className="text-xs text-destructive">{retryError}</p>}</div>}
             {state.flights.length > 0 && <FlightResults flights={state.flights} groupId={session.groupId} />}
             {state.hotels.length > 0 && <HotelResults hotels={state.hotels} groupId={session.groupId} />}
           </div>
