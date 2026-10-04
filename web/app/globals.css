@@ -263,7 +263,7 @@
   }
 
   .story-kicker {
-    @apply text-xs font-medium tracking-[0.16em] text-accent-brand uppercase;
+    @apply text-xs font-medium tracking-[0.16em] text-black uppercase;
   }
 
   .whatsapp-phone {
@@ -453,7 +453,7 @@
 
   .hero-globe-walker {
     position: absolute;
-    top: 6%;
+    top: 1%;
     left: 50%;
     z-index: 2;
     width: 5rem;
@@ -481,6 +481,7 @@
     animation-name: ryan-walk-3;
   }
 
+
   .hero-text-cycle {
     position: relative;
     display: flex;
@@ -495,12 +496,13 @@
 
   .hero-text-cycle-item {
     position: absolute;
-    max-width: 58rem;
+    max-width: none;
     margin: 0;
-    font-size: clamp(2.75rem, 7.2vw, 6.25rem);
+    font-size: clamp(0.95rem, 5.4vw, 2.75rem);
     font-weight: 700;
     line-height: 1;
     letter-spacing: -0.04em;
+    white-space: nowrap;
     color: var(--foreground);
     opacity: 0;
     clip-path: inset(0 100% 0 0);
@@ -510,6 +512,12 @@
     animation-timing-function: ease-in-out;
     animation-iteration-count: infinite;
     will-change: opacity, filter, transform, clip-path;
+  }
+
+  @media (min-width: 640px) {
+    .hero-text-cycle-item {
+      font-size: clamp(1.9rem, 6.2vw, 5.5rem);
+    }
   }
 
   .hero-text-cycle-1 {
