@@ -3,7 +3,7 @@
 import { useState } from "react"
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { IconArrowLeft, IconPlane, IconBuilding, IconCheck, IconChevronDown, IconAlertCircle, IconLoader2 } from "@tabler/icons-react"
+import { IconArrowLeft, IconArrowUpRight, IconBrandWhatsapp, IconPlane, IconBuilding, IconCheck, IconChevronDown, IconAlertCircle, IconLoader2 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { useSessionEvents } from "@/hooks/use-session-events"
 import { planningTasks } from "@/lib/planning-tasks"
@@ -105,7 +105,10 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
   }
 
   return <div className="mx-auto max-w-4xl">
-    <Link href={`/dashboard/${groupPathId(session.groupId)}`} className="mb-7 inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary"><IconArrowLeft className="size-4" />All group trips</Link>
+    <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+      <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-full px-1 py-2 text-sm text-muted-foreground transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"><IconArrowLeft className="size-4" />Your trips</Link>
+      <Link href={`/dashboard/${groupPathId(session.groupId)}`} className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-xs font-medium shadow-[0_8px_24px_rgba(20,55,38,0.06)] transition-[border-color,background-color,box-shadow] hover:border-primary/40 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"><IconBrandWhatsapp className="size-4 text-primary" />All group trips<IconArrowUpRight className="size-3.5 text-muted-foreground" /></Link>
+    </div>
     <div className="mb-10 flex flex-wrap items-end justify-between gap-5">
       <div><p className="mb-2 text-xs font-medium tracking-widest text-primary uppercase">Your next adventure</p><h1 className="text-5xl font-semibold tracking-[-0.05em] sm:text-6xl">{session.destination}</h1><p className="mt-3 text-sm text-muted-foreground">{session.origin} → {session.destination}<span className="mx-3 text-border">/</span>{tripDates(session.startDate, session.endDate)}</p></div>
       <div className="flex flex-wrap items-center gap-3"><StepStatusBadge key={state.status} status={sessionStepStatus} label={completed ? "Your trip is ready" : state.status === "created" ? "Understanding your group" : failed && !searchRecoverable ? "Planning interrupted" : state.status === "planning" ? "Building your itinerary" : "Planning your trip"} /></div>
