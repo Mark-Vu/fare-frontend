@@ -136,8 +136,8 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
               {flightFailed && state.hotel === "completed" && <Button size="sm" variant="outline" disabled={skipping || retryingFlight} onClick={() => void skipFlights()}>{skipping ? "Skipping flights…" : "Skip flights"}</Button>}
               {retryError && <p role="alert" className="text-xs text-destructive">{retryError}</p>}
             </div>}
-            {state.flights.length > 0 && <FlightResults flights={state.flights} groupId={session.groupId} />}
-            {state.hotels.length > 0 && <HotelResults hotels={state.hotels} groupId={session.groupId} />}
+            {state.flights.length > 0 && <FlightResults flights={state.flights} />}
+            {state.hotels.length > 0 && <HotelResults hotels={state.hotels} />}
           </div>
         </details>
       </FlowStep>
