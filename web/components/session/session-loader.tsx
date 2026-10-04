@@ -15,6 +15,7 @@ export function SessionLoader({ groupId, sessionId }: { groupId: string; session
     const controller = new AbortController()
     setSnapshot(null)
     setError(null)
+    let loading = false
     function receive(next: SessionSnapshot) {
       if (controller.signal.aborted || next.session.id !== sessionId) return
       setSnapshot(current => mergeSessionSnapshot(current, next))
@@ -24,10 +25,21 @@ export function SessionLoader({ groupId, sessionId }: { groupId: string; session
       const next = event.type === "group.snapshot" ? event.sessions?.find(item => item.session.id === sessionId) : event.snapshot
       if (next) receive(next)
     })
-    getSessionSnapshot(groupId, sessionId, controller.signal).then(receive).catch(reason => {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "Could not load the session.")
-    })
-    return () => { controller.abort(); unsubscribe() }
+    async function loadSnapshot() {
+      if (loading || controller.signal.aborted) return
+      loading = true
+      try {
+        receive(await getSessionSnapshot(groupId, sessionId, controller.signal))
+      } catch (reason) {
+        if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "Could not load the session.")
+      } finally {
+        loading = false
+      }
+    }
+    void loadSnapshot()
+    // Recover results and recording links even when the socket stays open but misses an update.
+    const fallback = setInterval(() => { void loadSnapshot() }, 5000)
+    return () => { controller.abort(); clearInterval(fallback); unsubscribe() }
   }, [groupId, sessionId])
   if (snapshot) return <SessionDashboard key={sessionId} snapshot={snapshot} />
   return <div className="mx-auto max-w-4xl rounded-2xl border border-border bg-card p-8"><p role="status" className="font-medium">{error ?? "Connecting to your planning session…"}</p><p className="mt-3 text-sm text-muted-foreground">{error ? "The dashboard will reconnect when your backend is available." : "Your group’s latest progress will appear here as soon as the connection opens."}</p><Link href={`/dashboard/${groupPathId(groupId)}`} className="mt-5 inline-block text-sm text-primary">Back to group trips →</Link></div>
