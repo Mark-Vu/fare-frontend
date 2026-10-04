@@ -29,6 +29,31 @@ function namedIds(members: ExpenseMember[]) {
   return members.filter(member => memberLabel(member)).map(member => member.id)
 }
 
+function Bone({ className }: { className: string }) {
+  return <span aria-hidden="true" className={`block rounded-lg bg-secondary motion-safe:animate-pulse ${className}`} />
+}
+
+function ExpenseSkeleton() {
+  return <div role="status" aria-label="Loading expenses" className="mt-5">
+    <div className="grid gap-4 sm:grid-cols-2">
+      {["You are", "Paid by", "What was it for?", "Amount"].map(label => <div key={label}><Bone className="h-3 w-24" /><Bone className="mt-2 h-10 w-full rounded-xl" /></div>)}
+    </div>
+    <Bone className="mt-5 h-3 w-32" />
+    <div className="mt-3 flex flex-wrap gap-4">{[0, 1, 2].map(index => <Bone key={index} className="h-4 w-24" />)}</div>
+    <Bone className="mt-5 h-9 w-32 rounded-full" />
+    <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div>
+        <Bone className="h-4 w-24" />
+        <div className="mt-3 space-y-3">{[0, 1].map(index => <div key={index} className="rounded-xl border border-border p-4"><div className="flex justify-between gap-3"><Bone className="h-4 w-32" /><Bone className="h-4 w-16" /></div><Bone className="mt-3 h-3 w-40" /><Bone className="mt-2 h-3 w-full max-w-sm" /></div>)}</div>
+      </div>
+      <div>
+        <Bone className="h-4 w-52" />
+        <div className="mt-3 space-y-3">{[0, 1, 2].map(index => <div key={index} className="flex justify-between gap-3"><Bone className="h-4 w-28" /><Bone className="h-4 w-24" /></div>)}</div>
+      </div>
+    </div>
+  </div>
+}
+
 export function ExpenseTracker({ groupId, sessionId }: { groupId: string; sessionId: string }) {
   const [ledger, setLedger] = useState<LedgerView | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -134,7 +159,7 @@ export function ExpenseTracker({ groupId, sessionId }: { groupId: string; sessio
     {error && <p role="alert" className="mt-4 text-sm text-destructive">{error}</p>}
     {uncertain && <button type="button" disabled={busy} onClick={() => void retryPending()} className={`${button} mt-3`}>{busy ? "Retrying…" : "Retry request"}</button>}
     {warning && <p role="status" className="mt-4 text-sm text-muted-foreground">{warning}</p>}
-    {!ledger && !loadError && <p className="mt-4 text-sm text-muted-foreground">Loading expenses…</p>}
+    {!ledger && !loadError && <ExpenseSkeleton />}
     {ledger && <>
       {!writable && <p className="mt-4 text-sm text-muted-foreground">Expenses for this trip are read-only.</p>}
       {writable && members.length === 0 && <p className="mt-4 text-sm text-muted-foreground">No one from this group is on the expense list yet. Once people are on the trip, you can record who paid.</p>}
