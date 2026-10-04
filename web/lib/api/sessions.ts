@@ -1,11 +1,22 @@
 import { orchestratorUrl } from "./group-socket"
 import type { SessionSnapshot } from "@/types/dashboard"
+import type { TripSession } from "@/types/session"
 
-export async function getDashboardSessions(signal?: AbortSignal) {
-  const response = await fetch(`${orchestratorUrl}/dashboard/sessions`, { cache: "no-store", signal })
+export type DashboardSessionPage = {
+  sessions: TripSession[]
+  total: number
+  limit: number
+  offset: number
+  counts: { all: number; live: number; ready: number; failed: number }
+}
+
+export async function getDashboardSessions(query: { limit: number; offset: number; filter: string; q: string }, signal?: AbortSignal) {
+  const params = new URLSearchParams({ limit: String(query.limit), offset: String(query.offset), filter: query.filter || "all" })
+  if (query.q.trim()) params.set("q", query.q.trim())
+  const response = await fetch(`${orchestratorUrl}/dashboard/sessions?${params}`, { cache: "no-store", signal })
   if (!response.ok) throw new Error("Could not load planning sessions.")
-  const snapshots = await response.json() as SessionSnapshot[]
-  return snapshots.map(snapshot => snapshot.session)
+  const page = await response.json() as DashboardSessionPage
+  return { ...page, sessions: page.sessions ?? [], counts: page.counts ?? { all: 0, live: 0, ready: 0, failed: 0 } }
 }
 
 export async function getGroupSessions(groupId: string, signal?: AbortSignal) {

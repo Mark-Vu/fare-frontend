@@ -12,17 +12,29 @@ export function useGroupEvents(groupId: string) {
   return usePlanningEvents(groupId)
 }
 
-export function useDashboardEvents() {
-  return usePlanningEvents(null)
+export type DashboardPageQuery = { limit: number; offset: number; filter: string; q: string }
+
+export function useDashboardEvents(page: DashboardPageQuery) {
+  return usePlanningEvents(null, page)
 }
 
-function usePlanningEvents(groupId: string | null) {
+function usePlanningEvents(groupId: string | null, page?: DashboardPageQuery) {
   const [sessions, setSessions] = useState<TripSession[]>([])
+  const [total, setTotal] = useState(0)
+  const [counts, setCounts] = useState({ all: 0, live: 0, ready: 0, failed: 0 })
   const [newSession, setNewSession] = useState<TripSession | null>(null)
   const [connection, setConnection] = useState<ConnectionStatus>("connecting")
   const [error, setError] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
+  const [paging, setPaging] = useState(false)
   const groupNames = useRef(new Map<string, string>())
+  const pageRef = useRef(page)
+  pageRef.current = page
+  const reloadRef = useRef<() => void>(() => {})
+  useEffect(() => {
+    if (groupId !== null) return
+    reloadRef.current()
+  }, [groupId, page?.limit, page?.offset, page?.filter, page?.q])
   useEffect(() => {
     setSessions([])
     setNewSession(null)
@@ -33,7 +45,7 @@ function usePlanningEvents(groupId: string | null) {
     const notified = new Set<string>()
     let receivedSessions = false
     let revision = 0
-    let loading = false
+    let request = 0
     let status: ConnectionStatus = "connecting"
     function notify(session: TripSession) {
       if (notified.has(session.id)) return
@@ -72,31 +84,51 @@ function usePlanningEvents(groupId: string | null) {
       else setNewSession(current => current ? next.find(session => session.id === current.id) ?? current : null)
     }
     async function loadSessions() {
-      if (loading) return
-      loading = true
+      const id = ++request
       const startedAt = revision
       try {
-        await loadGroupNames()
-        const next = await (groupId === null ? getDashboardSessions(controller.signal) : getGroupSessions(groupId, controller.signal))
-        if (!controller.signal.aborted && startedAt === revision) {
-          receiveSessions(next)
-          setError(null)
+        if (groupId === null) {
+          const query = pageRef.current ?? { limit: 8, offset: 0, filter: "all", q: "" }
+          setPaging(true)
+          const next = await getDashboardSessions(query, controller.signal)
+          if (!controller.signal.aborted && startedAt === revision && id === request) {
+            next.sessions.forEach(session => seen.add(session.id))
+            setSessions(next.sessions.map(withGroupName))
+            setTotal(next.total)
+            setCounts(next.counts)
+            setLoaded(true)
+            setError(null)
+          }
+        } else {
+          await loadGroupNames()
+          const next = await getGroupSessions(groupId, controller.signal)
+          if (!controller.signal.aborted && startedAt === revision && id === request) {
+            receiveSessions(next)
+            setError(null)
+          }
         }
       } catch {
-        if (!controller.signal.aborted && startedAt === revision) {
+        if (!controller.signal.aborted && startedAt === revision && id === request) {
           setLoaded(true)
           if (status !== "connected") setError("Could not load sessions. Check that the orchestrator is running at the configured API URL.")
         }
       } finally {
-        loading = false
+        if (!controller.signal.aborted && id === request) setPaging(false)
       }
     }
     function receiveEvent(event: DashboardEvent) {
       if (controller.signal.aborted) return
       if ((event.type === "group.snapshot" || event.type === "dashboard.snapshot") && event.sessions) {
+        if (groupId === null) return
         revision++
         setError(null)
         receiveSessions(event.sessions.map(snapshot => snapshot.session).map(withGroupName))
+      } else if (groupId === null && (event.session || event.snapshot?.session) && !event.type.startsWith("agent.")) {
+        const session = withGroupName(event.session ?? event.snapshot!.session)
+        if (event.type === "session.started" || !seen.has(session.id)) notify(session)
+        else setNewSession(current => current?.id === session.id ? session : current)
+        seen.add(session.id)
+        void loadSessions()
       } else if ((event.session || event.snapshot?.session) && !event.type.startsWith("agent.")) {
         revision++
         setError(null)
@@ -119,6 +151,7 @@ function usePlanningEvents(groupId: string | null) {
     const unsubscribe = groupId === null
       ? subscribeDashboardSocket(receiveEvent, receiveConnection)
       : subscribeGroupSocket(groupId, receiveEvent, receiveConnection)
+    reloadRef.current = () => { void loadSessions() }
     void loadSessions()
     const fallback = setInterval(() => {
       // An open socket alone does not guarantee that every update arrived.
@@ -131,5 +164,5 @@ function usePlanningEvents(groupId: string | null) {
       unsubscribe()
     }
   }, [groupId])
-  return { sessions, newSession, connection, error, loaded, dismissSession: () => setNewSession(null) }
+  return { sessions, total, counts, paging, newSession, connection, error, loaded, dismissSession: () => setNewSession(null) }
 }
