@@ -1,36 +1,113 @@
 import Link from "next/link"
-import { IconArrowUpRight, IconBrandWhatsapp, IconCalendar, IconCheck, IconCompass, IconPlane, IconAlertCircle } from "@tabler/icons-react"
-import { destinationCover } from "@/lib/destination-image"
+import type { CSSProperties } from "react"
+import { IconArrowRight, IconBrandWhatsapp, IconPlane, IconPlaneDeparture } from "@tabler/icons-react"
+import { destinationImage } from "@/lib/destination-image"
 import { groupPathId } from "@/lib/group-id"
-import { sessionDates, sessionDestination, sessionGroup, sessionIsLive, sessionStatus } from "@/lib/session-display"
+import { sessionDates, sessionDestination, sessionGroup, sessionStatus } from "@/lib/session-display"
+import { barcodeBars, seededAccent } from "@/lib/ticket"
 import type { TripSession } from "@/types/session"
 
-export function SessionCard({ session }: { session: TripSession }) {
-  const live = sessionIsLive(session)
-  const failed = session.status === "failed"
-  const destination = sessionDestination(session)
-  const cover = destinationCover(session.destination)
-  const created = new Date(session.createdAt)
-  const createdLabel = Number.isFinite(created.getTime()) ? created.toLocaleString("en-CA", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : null
+function nightsCount(session: TripSession) {
+  const start = new Date(`${session.startDate}T12:00:00Z`)
+  const end = new Date(`${session.endDate}T12:00:00Z`)
+  if (!session.startDate || !session.endDate || !Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return null
+  const nights = Math.round((end.getTime() - start.getTime()) / 86400000)
+  return nights > 0 ? nights : null
+}
 
-  return <Link href={`/dashboard/${groupPathId(session.groupId)}/${encodeURIComponent(session.id)}`} className={`group flex h-full flex-col overflow-hidden rounded-3xl border bg-card transition-[border-color,box-shadow,transform] duration-200 motion-safe:hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring ${live ? "border-primary/30 hover:border-primary/60" : "border-border hover:border-primary/40"} hover:shadow-[0_12px_32px_rgba(20,55,38,0.08)]`}>
-    <div className="relative isolate flex min-h-52 flex-col justify-between overflow-hidden bg-forest p-6 text-white">
-      {cover ? <div aria-hidden="true" className="absolute inset-0 -z-10 bg-cover bg-center transition-transform duration-500 motion-safe:group-hover:scale-105" style={{ backgroundImage: `url(${cover})` }} /> : <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,rgba(237,208,126,0.22),transparent_65%)]"><div className="absolute -top-16 -right-10 size-64 rounded-full border border-sun/15" /><div className="absolute -top-8 -right-2 size-48 rounded-full border border-sun/15" /><IconCompass className="absolute top-8 right-8 size-20 -rotate-12 text-sun/15" /></div>}
-      {cover && <div aria-hidden="true" className="absolute inset-0 -z-10 bg-linear-to-t from-forest via-forest/35 to-forest/20" />}
-      <div className="flex items-center justify-between gap-3">
-        <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-medium backdrop-blur-md ${failed ? "bg-white/95 text-destructive" : live ? "bg-sun text-forest" : "bg-white/95 text-primary"}`}>
-          {live ? <span className="size-1.5 rounded-full bg-forest motion-safe:animate-pulse" /> : failed ? <IconAlertCircle className="size-3.5" /> : <IconCheck className="size-3.5" />}
-          {sessionStatus(session)}
-        </span>
-        <span className="grid size-9 shrink-0 place-items-center rounded-full border border-white/25 bg-white/10 transition-colors group-hover:bg-white/20"><IconArrowUpRight className="size-4" /></span>
+function daysUntilLabel(session: TripSession) {
+  if (!session.startDate) return "—"
+  const start = new Date(`${session.startDate}T00:00:00`)
+  if (!Number.isFinite(start.getTime())) return "—"
+  const days = Math.ceil((start.getTime() - Date.now()) / 86400000)
+  return days <= 0 ? "Today" : `${days}d`
+}
+
+export function SessionCard({ session }: { session: TripSession }) {
+  const originCity = session.origin || "Somewhere"
+  const destination = sessionDestination(session)
+  const destCity = session.destination.trim() && session.destination !== "Planning your trip" ? session.destination : sessionGroup(session)
+  const bars = barcodeBars(session.id)
+  const dates = sessionDates(session)
+  const nights = nightsCount(session)
+  const nightsLabel = nights ? `${nights}` : "—"
+  const inLabel = daysUntilLabel(session)
+  const accentTab = `flex h-16 flex-none items-center border-b-2 border-border px-8 transition-colors duration-500 ease-out [background-color:color-mix(in_oklch,var(--accent)_28%,var(--muted)_72%)] group-hover/card:border-transparent group-hover/card:[background-color:var(--accent)]`
+
+  return <Link href={`/dashboard/${groupPathId(session.groupId)}/${encodeURIComponent(session.id)}`} className="group/card boarding-pass flex w-full shrink-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">
+    <div className="relative flex w-full" style={{ "--accent": seededAccent(session.id), "--border": "oklch(0.18 0.015 158)" } as CSSProperties}>
+      <div style={{ "--border": "oklch(0.18 0.015 158)" } as CSSProperties} className="ticket-notch relative z-10 flex w-[70%] flex-none flex-col overflow-hidden border-y-2 border-l-2 border-r-2 border-border bg-card transition-transform duration-300 ease-out [border-right-style:dashed] group-hover/card:-translate-x-1.5 group-hover/card:translate-y-0.5 group-hover/card:-rotate-1">
+        <div className={accentTab}>
+          <p className="flex min-w-0 items-center gap-2 truncate text-xl font-semibold text-foreground transition-colors duration-500 ease-out group-hover/card:text-white">{sessionGroup(session)} <IconBrandWhatsapp className="size-7 shrink-0" /> powered by Fare</p>
+        </div>
+
+        <div className="relative flex flex-1 flex-col items-center justify-center gap-4 overflow-hidden px-5 py-6 pl-30 text-center">
+          <div className="absolute inset-y-4 left-8 flex w-12 flex-col justify-between gap-1">
+            {bars.map((w, i) => <span key={i} className="block rounded-[1px] bg-foreground/70" style={{ height: `${w}px` }} />)}
+          </div>
+
+          <p className="flex items-center gap-2 text-sm font-medium tracking-[0.2em] text-muted-foreground uppercase"><IconPlaneDeparture className="size-4" />Boarding pass</p>
+
+          <div className="min-w-0 max-w-full">
+            <h2 className="truncate text-2xl font-semibold">{destination}</h2>
+            <p className="mt-1 truncate text-base text-muted-foreground">{dates}</p>
+            <div className="mt-2 flex w-full min-w-0 items-center justify-center gap-4 font-mono text-2xl font-bold tracking-tight">
+              <span className="min-w-0 truncate">{originCity}</span>
+              <IconPlane className="size-7 shrink-0 -scale-y-100 rotate-90 text-primary" />
+              <span className="min-w-0 truncate">{destCity}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-10">
+            <div>
+              <p className="text-sm tracking-[0.15em] text-muted-foreground uppercase">In</p>
+              <p className="font-mono text-lg font-semibold">{inLabel}</p>
+            </div>
+            <div>
+              <p className="text-sm tracking-[0.15em] text-muted-foreground uppercase">Nights</p>
+              <p className="font-mono text-lg font-semibold">{nightsLabel}</p>
+            </div>
+            <div>
+              <p className="text-sm tracking-[0.15em] text-muted-foreground uppercase">Type</p>
+              <p className="font-mono text-lg font-semibold">Group</p>
+            </div>
+          </div>
+
+          <p className="flex items-center gap-2 text-base text-primary">Click to open trip details <IconArrowRight className="size-5" /></p>
+        </div>
       </div>
-      <div className="mt-10"><p className="mb-1 text-[10px] font-medium tracking-[0.18em] text-white/65 uppercase">Your destination</p><h3 className="text-3xl leading-tight font-semibold tracking-[-0.04em] sm:text-4xl">{destination}</h3></div>
-    </div>
-    <div className="flex flex-1 flex-col p-6">
-      <p className="flex items-center gap-2.5 text-sm font-medium"><IconCalendar className="size-4 shrink-0 text-primary" />{sessionDates(session)}</p>
-      <p className="mt-3 flex min-w-0 items-center gap-2.5 text-sm text-muted-foreground"><IconBrandWhatsapp className="size-4 shrink-0" /><span className="truncate" title={sessionGroup(session)}>{sessionGroup(session)}</span></p>
-      {session.origin && <p className="mt-3 flex items-center gap-2.5 text-xs text-muted-foreground"><IconPlane className="size-4 shrink-0" />From {session.origin}</p>}
-      <div className="mt-auto pt-5"><div className="flex items-center justify-between gap-3 border-t border-border/70 pt-4"><span className="text-[10px] text-muted-foreground">{createdLabel ? `Started ${createdLabel}` : "Planning session"}</span><span className="shrink-0 text-xs font-semibold text-primary">{failed ? "View session" : live ? "Follow live" : "View itinerary"} →</span></div></div>
+
+      <div style={{ "--border": "oklch(0.18 0.015 158)" } as CSSProperties} className="ticket-notch relative z-10 flex w-[30%] flex-none flex-col overflow-hidden border-y-2 border-r-2 border-border bg-muted transition-transform duration-300 ease-out group-hover/card:translate-x-1.5 group-hover/card:translate-y-0.5 group-hover/card:rotate-1">
+        <div className={`${accentTab} justify-end`}>
+          <p className="min-w-0 truncate text-sm font-medium tracking-wide text-black uppercase transition-colors duration-500 ease-out group-hover/card:text-white">Status: {sessionStatus(session)}</p>
+        </div>
+
+        <div className="relative flex flex-1 flex-col items-center justify-center gap-5 overflow-hidden p-5 text-center">
+          <div className="absolute inset-0">
+            <div
+              className="absolute inset-0 bg-cover opacity-5 transition-opacity duration-500 ease-out group-hover/card:opacity-30"
+              style={{ backgroundImage: `url(${destinationImage(destination)})`, backgroundPosition: "right center" }}
+            />
+          </div>
+
+          <div className="relative z-10 flex w-full min-w-0 flex-col items-center gap-2 px-1">
+            <p className="w-full truncate text-center text-lg font-semibold">{destination}</p>
+            <div className="flex w-full min-w-0 items-center justify-center gap-2 font-mono text-base font-bold tracking-tight">
+              <span className="min-w-0 flex-1 truncate text-right">{originCity}</span>
+              <IconPlane className="size-4 shrink-0 -scale-y-100 rotate-90 text-primary" />
+              <span className="min-w-0 flex-1 truncate text-left">{destCity}</span>
+            </div>
+            <div className="flex gap-4 font-mono text-sm tracking-wide text-muted-foreground uppercase">
+              <span>In {inLabel}</span>
+              <span>{nightsLabel}n</span>
+            </div>
+          </div>
+
+          <div className="relative z-10 flex h-10 items-stretch gap-1.5">
+            {bars.map((w, i) => <span key={i} className="block h-full rounded-[1px] bg-foreground/70" style={{ width: `${w}px` }} />)}
+          </div>
+        </div>
+      </div>
     </div>
   </Link>
 }
