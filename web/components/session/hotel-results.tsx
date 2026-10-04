@@ -1,6 +1,7 @@
 "use client"
-import { IconBuilding, IconArrowUpRight, IconChevronDown } from "@tabler/icons-react"
+import { IconBuilding, IconChevronDown } from "@tabler/icons-react"
 import { money } from "@/lib/trip-format"
+import { OfferLink } from "@/components/session/offer-link"
 import type { Hotel } from "@/types/hotel"
 
 export function HotelResults({ hotels }: { hotels: Hotel[] }) {
@@ -24,7 +25,7 @@ export function HotelResults({ hotels }: { hotels: Hotel[] }) {
         </div>
         {hotel.priceNote && <p className="mt-3 text-[11px] text-muted-foreground">{hotel.priceNote}</p>}
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          {hotel.url && /^https?:\/\//i.test(hotel.url) && <a href={hotel.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-800 transition-colors hover:bg-orange-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500">View stay<IconArrowUpRight className="size-3" /></a>}
+          <OfferLink url={hotel.url} label="View stay" />
         </div>
       </div>)}
     </div>
