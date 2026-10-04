@@ -73,11 +73,8 @@ const approvals = [
 export default function Page() {
   return (
     <main className="overflow-clip bg-background text-foreground">
-      <div
-        className="relative bg-forest p-3 sm:p-4"
-        style={{ clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 4rem), 0 100%)" }}
-      >
-      <div className="relative overflow-hidden rounded-[1.75rem] bg-background pb-24 sm:rounded-[2.25rem] sm:pb-32">
+      <div className="relative bg-forest p-5 sm:p-7">
+      <div className="relative overflow-hidden rounded-[1.75rem] bg-background sm:rounded-[2.25rem]">
       <header className="absolute inset-x-0 top-0 z-20 h-18">
         <nav
           aria-label="Primary navigation"
@@ -161,42 +158,16 @@ export default function Page() {
             </p>
           </div>
 
-          <p className="hero-subline">
-            Fare reads each person&apos;s dates, budget, and preferences, then
-            brings one best-fit trip back to the chat.
-          </p>
-
-          <div className="hero-cta">
-            <Button
-              render={<a href="#how-it-works" />}
-              nativeButton={false}
-              size="lg"
-              className="h-11 rounded-full bg-forest px-6 text-primary-foreground hover:bg-forest/90"
-            >
-              Follow the chat
-              <ArrowRight data-icon="inline-end" strokeWidth={1.8} />
-            </Button>
-            <Button
-              render={<a href="#destinations" />}
-              nativeButton={false}
-              size="lg"
-              variant="ghost"
-              className="h-11 rounded-full px-6 text-foreground hover:bg-muted"
-            >
-              See trip ideas
-            </Button>
-          </div>
         </div>
       </section>
       </div>
-        <div aria-hidden="true" className="absolute top-0 left-0 z-10 h-16 w-52 rounded-br-2xl bg-forest sm:h-20 sm:w-60" />
-        <div aria-hidden="true" className="absolute top-0 right-0 z-10 h-16 w-52 rounded-bl-2xl bg-forest sm:h-20 sm:w-60" />
       </div>
 
+      <div>
       <WhatsAppStory />
 
       <section
-        className="px-4 py-16 sm:px-6 md:py-20 lg:px-10 lg:py-24"
+        className="relative px-4 py-16 sm:px-6 md:py-20 lg:px-10 lg:py-24"
         aria-labelledby="ledger-title"
       >
         <div className="mx-auto grid max-w-[1400px] gap-10 md:grid-cols-12 md:items-start">
@@ -248,7 +219,7 @@ export default function Page() {
       </section>
 
       <section
-        className="px-4 py-16 sm:px-6 md:py-20 lg:px-10 lg:py-24"
+        className="relative px-4 py-16 sm:px-6 md:py-20 lg:px-10 lg:py-24"
         aria-labelledby="fit-title"
       >
         <div className="mx-auto grid max-w-[1400px] gap-8 md:grid-cols-12 md:items-center">
@@ -430,7 +401,7 @@ export default function Page() {
 
       <section
         id="destinations"
-        className="px-4 py-16 sm:px-6 md:py-20 lg:px-10 lg:py-24"
+        className="relative px-4 py-16 sm:px-6 md:py-20 lg:px-10 lg:py-24"
         aria-labelledby="destinations-title"
       >
         <div className="mx-auto max-w-[1400px]">
@@ -479,7 +450,7 @@ export default function Page() {
       </section>
 
       <section
-        className="px-4 py-6 sm:px-6 md:py-8 lg:px-10 lg:py-10"
+        className="relative px-4 py-6 sm:px-6 md:py-8 lg:px-10 lg:py-10"
         aria-labelledby="consensus-title"
       >
         <div className="mx-auto grid max-w-[1400px] gap-8 border-y border-border py-8 md:grid-cols-12 md:items-center md:py-10">
@@ -565,8 +536,9 @@ export default function Page() {
           </RevealItem>
         </Reveal>
       </section>
+      </div>
 
-      <footer className="px-4 pb-8 sm:px-6 lg:px-10">
+      <footer className="flow-dark relative bg-forest px-4 py-8 sm:px-6 lg:px-10">
         <div className="mx-auto flex max-w-[1400px] flex-col gap-5 border-t border-border pt-7 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <a
             href="#top"
