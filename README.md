@@ -134,6 +134,12 @@ sessions underneath. `/dashboard/{groupId}/{sessionId}` follows one session
 (browser preview when frames exist, saved offers, planner) and embeds the
 same WhatsApp plan at the bottom.
 
+Each agent browser has website tabs from the start: Google Flights and KAYAK for
+flights, Booking.com and Airbnb for stays. Tabs follow each website's live frames
+and show its recording when available after the stream ends. Flight previews
+are kept separately by website and departure airport; switching tabs does not
+start or repeat a search.
+
 This orchestrator maps the singleton WhatsApp trip into the session snapshot
 the frontend already understands (`GET /groups/{groupId}/sessions` and
 `GET /groups/{groupId}/events`). JPEG Skyvern frames still require the Python

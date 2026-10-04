@@ -35,7 +35,6 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
   const [busy, setBusy] = useState(false)
   const [tab, setTab] = useState<Tab>("Itinerary")
   const [actor, setActor] = useState("")
-  const [budget, setBudget] = useState("")
   const [chat, setChat] = useState("")
 
   useEffect(() => {
@@ -52,7 +51,6 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
         if (!stop) {
           setTrip(current => mergeTrip(current, next))
           setError(null)
-          setBudget(current => current || next.budget_note || "")
         }
       } catch (err) {
         if (!stop && !(err instanceof DOMException)) setError(err instanceof Error ? err.message : "Could not load this trip.")
@@ -133,7 +131,7 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
       </aside>
     </section>}
 
-    {tab === "Money" && <><section className="mt-6 grid gap-4 md:grid-cols-2">
+    {tab === "Money" && <><section className="mt-6 max-w-2xl">
       <div className="rounded-2xl border border-border bg-card p-6">
         <h2 className="text-lg font-semibold">Flights + hotel</h2>
         <p className="mt-1 text-xs text-muted-foreground">Food is not in these numbers.</p>
@@ -145,13 +143,6 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
           <div className="flex justify-between font-semibold"><dt>Group total</dt><dd>{cad(trip.spend.travel_group)}</dd></div>
         </dl>
         {(trip.spend.food_per_day || trip.spend.food_trip) && <div className="mt-5 rounded-xl bg-secondary p-4 text-sm"><p className="font-medium">Food estimate</p><p className="mt-1 text-muted-foreground">{trip.spend.food_note}</p><p className="mt-2">{cad(trip.spend.food_per_day)} / day · {cad(trip.spend.food_trip)} for the trip, per person. Not booked.</p></div>}
-      </div>
-      <div className="space-y-4">
-        <form className="rounded-2xl border border-border bg-card p-6" onSubmit={e => { e.preventDefault(); void run({ action: "set_budget", budget }) }}>
-          <h2 className="font-semibold">Planning budget</h2>
-          <p className="mt-1 text-sm text-muted-foreground">One number for the group, in CAD. It guides food and options. It does not change the locked fare.</p>
-          <div className="mt-4 flex gap-2"><input value={budget} onChange={e => setBudget(e.target.value)} placeholder="2500" className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm" /><button disabled={busy} className="rounded-xl bg-primary px-4 text-sm text-primary-foreground">Save</button></div>
-        </form>
       </div>
     </section>
     <div className="mt-6">{(sessionId || trip.current_session_id) ? <ExpenseTracker key={`${groupId}:${sessionId || trip.current_session_id}`} groupId={groupId} sessionId={(sessionId || trip.current_session_id)!} /> : <p className="text-sm text-muted-foreground">Recorded expenses will be available once this trip has a planning session.</p>}</div>
