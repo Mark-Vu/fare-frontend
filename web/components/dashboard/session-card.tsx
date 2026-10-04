@@ -1,6 +1,7 @@
 import Link from "next/link"
 import type { CSSProperties } from "react"
-import { IconArrowRight, IconBrandWhatsapp, IconPlane, IconPlaneDeparture } from "@tabler/icons-react"
+import { IconArrowRight, IconPlane, IconPlaneDeparture } from "@tabler/icons-react"
+import { FareLogo } from "@/components/fare-logo"
 import { destinationImage } from "@/lib/destination-image"
 import { groupPathId } from "@/lib/group-id"
 import { sessionDates, sessionDestination, sessionGroup, sessionStatus } from "@/lib/session-display"
@@ -38,7 +39,7 @@ export function SessionCard({ session }: { session: TripSession }) {
     <div className="relative flex w-full" style={{ "--accent": seededAccent(session.id), "--border": "oklch(0.18 0.015 158)" } as CSSProperties}>
       <div style={{ "--border": "oklch(0.18 0.015 158)" } as CSSProperties} className="ticket-notch relative z-10 flex w-[70%] flex-none flex-col overflow-hidden border-y-2 border-l-2 border-r-2 border-border bg-card transition-transform duration-300 ease-out [border-right-style:dashed] group-hover/card:-translate-x-1.5 group-hover/card:translate-y-0.5 group-hover/card:-rotate-1">
         <div className={accentTab}>
-          <p className="flex min-w-0 items-center gap-2 truncate text-xl font-semibold text-foreground transition-colors duration-500 ease-out group-hover/card:text-white">{sessionGroup(session)} <IconBrandWhatsapp className="size-7 shrink-0" /> powered by Fare</p>
+          <p className="flex min-w-0 items-center gap-3 text-xl font-semibold text-foreground"><span className="min-w-0 truncate transition-colors duration-500 ease-out group-hover/card:text-white">{sessionGroup(session)}</span><FareLogo className="h-11 shrink-0" /></p>
         </div>
 
         <div className="relative flex flex-1 flex-col items-center justify-center gap-4 overflow-hidden px-5 py-6 pl-30 text-center">
