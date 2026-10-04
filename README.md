@@ -70,6 +70,48 @@ lib/                     Shared utilities
 
 ## Notes
 
-This repository currently contains the front-end concept and demonstration
-experience. The WhatsApp conversation, search results, and trip approvals shown
-on the page are illustrative and are not connected to a live planning backend.
+The landing-page conversation is illustrative. The dashboard is connected to
+the Go backend’s real group planning workflow.
+
+## Live group dashboard
+
+Open `/dashboard/{groupId}` using the actual WhatsApp group ID. The page connects
+to the Go orchestrator's group WebSocket. A bot planning trigger creates a session,
+shows a popup, and links to `/dashboard/{groupId}/{sessionId}`. The session page
+follows the backend's searches, browser frames, planning checkpoints, and saved
+itinerary; opening a page never launches additional searches.
+
+The backend waits for the group's destination choice before searching. Searches
+run concurrently. The final plan has expandable days with timed local activities.
+Reconnects receive a fresh saved snapshot instead of restarting paid work.
+
+Configure `web/.env.local` from `web/.env.example`:
+
+```dotenv
+NEXT_PUBLIC_ORCHESTRATOR_URL=http://localhost:8000
+NEXT_PUBLIC_ORCHESTRATOR_WS_URL=ws://localhost:8000
+```
+
+The frontend no longer connects directly to the individual travel-service
+bridges. Configure their URLs on the Go backend instead:
+
+```dotenv
+DASHBOARD_URL=http://localhost:3000
+MOCK_LLM=false
+MOCK_TRAVEL=false
+FLIGHT_SERVICE_WS_URL=ws://127.0.0.1:8765
+HOTEL_SERVICE_WS_URL=ws://127.0.0.1:8766
+SEARCH_FRONTEND_ORIGIN=http://localhost:3000
+```
+
+Both Python bridges support `WS_PORT`, retaining 8765 as the default. Run the
+flight bridge on 8765 and the hotel bridge with `WS_PORT=8766`, using each service's
+own environment and credentials. The Go backend can alternatively use the
+services' Lambda HTTP URLs for results, but those calls do not provide live frames.
+
+`MOCK_TRAVEL=true` on the backend provides mock travel offers with real workflow
+events; Gemini still needs its configured key. No frontend mock events or sample
+group history are used in the dashboard. Saved snapshots retain up to 20 sessions
+per group, using Mongo when configured. Browser frames are not stored.
+
+See the Go backend's README for the endpoints and event contract.
