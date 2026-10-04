@@ -15,7 +15,7 @@ export function LiveBrowser({ status, liveViewUrl, agentType, previews = {}, rec
   const [selectedSource, setSelectedSource] = useState<string | null>(null)
   const flight = agentType === "flight"
   const safeLink = (url?: string) => url && /^https?:\/\//i.test(url) ? url : undefined
-  const websites = flight ? ["google_flights", "trip_com"] : ["booking_com", "airbnb"]
+  const websites = flight ? ["google_flights"] : ["booking_com", "airbnb"]
   const tabs = new Map<string, BrowserSource>()
   const sourceKey = browserSourceKey
   for (const [key, preview] of Object.entries(previews)) {
