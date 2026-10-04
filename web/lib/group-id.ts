@@ -17,5 +17,5 @@ export function canonicalGroupId(id: string) {
 }
 
 export function groupPathId(id: string) {
-  return canonicalGroupId(id).replaceAll("@", ".")
+  return encodeURIComponent(canonicalGroupId(id))
 }
