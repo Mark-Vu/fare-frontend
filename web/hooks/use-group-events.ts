@@ -1,11 +1,20 @@
 "use client"
 import { useEffect, useState } from "react"
-import { subscribeGroupSocket } from "@/lib/api/group-socket"
-import { getGroupSessions } from "@/lib/api/sessions"
+import { subscribeDashboardSocket, subscribeGroupSocket } from "@/lib/api/group-socket"
+import { getDashboardSessions, getGroupSessions } from "@/lib/api/sessions"
+import type { DashboardEvent } from "@/types/dashboard"
 import type { ConnectionStatus } from "@/types/dashboard"
 import type { TripSession } from "@/types/session"
 
 export function useGroupEvents(groupId: string) {
+  return usePlanningEvents(groupId)
+}
+
+export function useDashboardEvents() {
+  return usePlanningEvents(null)
+}
+
+function usePlanningEvents(groupId: string | null) {
   const [sessions, setSessions] = useState<TripSession[]>([])
   const [newSession, setNewSession] = useState<TripSession | null>(null)
   const [connection, setConnection] = useState<ConnectionStatus>("connecting")
@@ -31,7 +40,7 @@ export function useGroupEvents(groupId: string) {
       const latestFailure = next[0]?.status === "failed" && !seen.has(next[0].id) ? next[0] : null
       // A session may finish before the next snapshot arrives. Notify about new
       // sessions discovered after loading, including those already completed.
-      const latestNew = receivedSessions && next[0] && !seen.has(next[0].id) ? next[0] : null
+      const latestNew = receivedSessions ? next.find(session => !seen.has(session.id)) : null
       next.forEach(session => seen.add(session.id))
       receivedSessions = true
       setSessions(next)
@@ -44,7 +53,7 @@ export function useGroupEvents(groupId: string) {
       loading = true
       const startedAt = revision
       try {
-        const next = await getGroupSessions(groupId, controller.signal)
+        const next = await (groupId === null ? getDashboardSessions(controller.signal) : getGroupSessions(groupId, controller.signal))
         if (!controller.signal.aborted && startedAt === revision) {
           receiveSessions(next)
           setError(null)
@@ -55,9 +64,9 @@ export function useGroupEvents(groupId: string) {
         loading = false
       }
     }
-    const unsubscribe = subscribeGroupSocket(groupId, event => {
+    function receiveEvent(event: DashboardEvent) {
       if (controller.signal.aborted) return
-      if (event.type === "group.snapshot" && event.sessions) {
+      if ((event.type === "group.snapshot" || event.type === "dashboard.snapshot") && event.sessions) {
         revision++
         setError(null)
         receiveSessions(event.sessions.map(snapshot => snapshot.session))
@@ -74,10 +83,14 @@ export function useGroupEvents(groupId: string) {
       } else if (event.type === "connection.error") {
         setError(event.message || "Could not load group sessions.")
       }
-    }, next => {
+    }
+    function receiveConnection(next: ConnectionStatus) {
       status = next
       setConnection(next)
-    })
+    }
+    const unsubscribe = groupId === null
+      ? subscribeDashboardSocket(receiveEvent, receiveConnection)
+      : subscribeGroupSocket(groupId, receiveEvent, receiveConnection)
     void loadSessions()
     const fallback = setInterval(() => {
       // An open socket alone does not guarantee that every update arrived.

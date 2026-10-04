@@ -46,6 +46,10 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
   const searchStatus: StepStatus = searchesDone ? "completed" : failed ? "failed" : state.status === "created" ? "pending" : "running"
   const browserStatus = agent === "flight" ? state.flight : state.hotel
   const sessionStepStatus: StepStatus = completed ? "completed" : failed ? "failed" : "running"
+  const plannerStatus: StepStatus = state.planning === "pending" && !failed && !completed && (searchesDone || state.status === "planning") ? "running" : state.planning
+  const plannerStarted = plannerStatus !== "pending" || state.status === "planning" || completed
+  const readyStatus: StepStatus = completed ? "completed" : failed ? "failed" : plannerStarted ? "running" : "pending"
+  const readyDescription = completed ? "Your group’s next adventure is ready. Open any day to see the full schedule." : failed ? "Planning was interrupted. Check the latest update before trying again." : state.plan ? "Finalizing your itinerary and saving your complete trip plan." : readyStatus === "running" ? "Preparing your complete trip plan as your daily schedule comes together." : "Your complete plan will appear here, with each day mapped out."
 
   return <div className="mx-auto max-w-4xl">
     <Link href={`/dashboard/${groupPathId(session.groupId)}`} className="mb-7 inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary"><IconArrowLeft className="size-4" />All group trips</Link>
@@ -75,17 +79,21 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
         </details>
       </FlowStep>
 
-      <FlowStep number={2} title="Building your itinerary" description={state.planning === "completed" ? "Your flight, stay, and daily schedule have been brought together." : state.planning === "running" ? "Using your group’s preferences and the search results to plan each day." : "Starts when both agents finish their searches."} status={state.planning}>
-        {state.planning !== "pending" && <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
-          <p className="mb-4 text-[11px] text-muted-foreground">Live planner · progress arrives from your group’s planning session.</p>
+      <FlowStep number={2} title="Building your itinerary" description={plannerStatus === "completed" ? "Your flight, stay, and daily schedule have been brought together." : plannerStatus === "failed" ? "Itinerary planning was interrupted. Check the latest update below." : plannerStatus === "running" ? "Using your group’s preferences and the search results to plan each day." : "Starts when both agents finish their searches."} status={plannerStatus}>
+        {plannerStarted && <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
+          <p className="mb-4 text-[11px] text-muted-foreground">Live planner · each task updates as it progresses.</p>
+          {plannerStatus === "running" && <div aria-hidden="true" className={`${statusStyles.plannerActivity} mb-4`} />}
           <ul aria-label="Itinerary building tasks" className="space-y-3 text-sm">
-            {planningTasks.map(task => {
-              const status = state.planningTasks[task.id]
-              return <li key={task.id} className={`flex flex-wrap items-center gap-3 rounded-xl border p-3 transition-colors duration-300 ${stepStatusStyles[status].surface}`}>
-                <span key={status} aria-hidden="true" className={`${statusStyles.change} grid size-7 shrink-0 place-items-center rounded-full border ${stepStatusStyles[status].icon}`}>
+            {planningTasks.map((task, index) => {
+              const status = state.planningTasks[task.id] ?? "pending"
+              return <li key={task.id} style={{ animationDelay: `${index * 140}ms` }} className={`${plannerStatus === "running" ? statusStyles.plannerTaskEnter : ""} flex flex-wrap items-center gap-3 rounded-xl border p-3 transition-colors duration-300 ${stepStatusStyles[status].surface}`}>
+                <span key={status} aria-hidden="true" className={`${statusStyles.change} ${status === "pending" && plannerStatus === "running" ? statusStyles.plannerWaiting : ""} grid size-7 shrink-0 place-items-center rounded-full border ${stepStatusStyles[status].icon}`}>
                   {status === "completed" ? <IconCheck className="size-4" /> : status === "running" ? <IconLoader2 className="size-4 motion-safe:animate-spin" /> : status === "failed" ? <IconAlertCircle className="size-4" /> : <span className="size-1.5 rounded-full bg-current" />}
                 </span>
-                <span className={`min-w-0 flex-1 font-medium ${status === "pending" ? "text-muted-foreground" : ""}`}>{task.title}</span>
+                <div className="min-w-0 flex-1">
+                  <p className={`font-medium ${status === "pending" ? "text-muted-foreground" : ""}`}>{task.title}</p>
+                  {state.planningTaskMessages?.[task.id] && <p className="mt-1 text-xs leading-5 text-muted-foreground">{state.planningTaskMessages[task.id]}</p>}
+                </div>
                 <StepStatusBadge status={status} />
               </li>
             })}
@@ -93,7 +101,11 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
         </div>}
       </FlowStep>
 
-      <FlowStep number={3} title="Trip ready" description={state.plan ? "Your group’s next adventure is ready. Open any day to see the full schedule." : "Your complete plan will appear here, with each day mapped out."} status={state.plan ? "completed" : failed ? "failed" : "pending"}>
+      <FlowStep number={3} title="Trip ready" description={readyDescription} status={readyStatus}>
+        {readyStatus === "running" && !state.plan && <div role="status" className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5">
+          <p className="flex items-center gap-2 text-sm font-medium"><IconLoader2 aria-hidden="true" className="size-4 motion-safe:animate-spin" />Preparing your trip</p>
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">{session.message || "Bringing your flights, stay, and daily activities together."}</p>
+        </div>}
         {state.plan && <FinalPlan plan={state.plan} session={session} />}
       </FlowStep>
     </ol>
