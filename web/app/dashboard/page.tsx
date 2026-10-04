@@ -1,2 +1,5 @@
-import { redirect } from "next/navigation"
-export default function DashboardPage() { redirect("/dashboard/group123") }
+import { TripList } from "@/components/dashboard/trip-list"
+
+export default function DashboardPage() {
+  return <TripList />
+}

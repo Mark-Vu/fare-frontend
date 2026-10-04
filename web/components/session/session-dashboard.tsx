@@ -15,6 +15,7 @@ import { ActivityFeed } from "./activity-feed"
 import { FlightResults } from "./flight-results"
 import { HotelResults } from "./hotel-results"
 import { FinalPlan } from "./final-plan"
+import { LiveTrip } from "@/components/dashboard/live-trip"
 
 function FlowStep({ number, title, description, status, children }: { number: number; title: string; description: string; status: StepStatus; children?: ReactNode }) {
   return <li className="relative pb-9 last:pb-0">
@@ -64,8 +65,8 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
             </div>
             <LiveBrowser status={browserStatus} agentType={agent} previews={state.previews[agent]} />
             <p role={browserStatus === "failed" ? "alert" : "status"} className={`text-xs leading-5 ${browserStatus === "failed" ? "text-destructive" : "text-muted-foreground"}`}>{agent === "flight" ? state.flightMessage : state.hotelMessage}</p>
-            {state.flights.length > 0 && <FlightResults flights={state.flights} />}
-            {state.hotels.length > 0 && <HotelResults hotels={state.hotels} />}
+            {state.flights.length > 0 && <FlightResults flights={state.flights} groupId={session.groupId} />}
+            {state.hotels.length > 0 && <HotelResults hotels={state.hotels} groupId={session.groupId} />}
           </div>
         </details>
       </FlowStep>
@@ -97,5 +98,9 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-2 text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"><span>Agent activity · {state.activity.length} updates</span><IconChevronDown className="size-4 transition-transform group-open:rotate-180" /></summary>
       <div className="mt-4"><ActivityFeed events={state.activity} /></div>
     </details>
+
+    <section className="mt-16 border-t border-border pt-10">
+      <LiveTrip groupId={session.groupId} embed />
+    </section>
   </div>
 }

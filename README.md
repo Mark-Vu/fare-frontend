@@ -61,12 +61,13 @@ npm run format     # Format TypeScript and TSX files with Prettier
 web/
   app/
     page.tsx                         Illustrative landing page
-    dashboard/[groupId]/             Group sessions and trip history
+    dashboard/[groupId]/             WhatsApp trip + live search sessions
       [sessionId]/                   Live session dashboard
   components/session/                Browser previews, results, progress, plan
-  components/dashboard/              Group dashboard and session notifications
+  components/dashboard/              Group list, live trip tabs, session cards
   hooks/                             Group and session event subscriptions
   lib/api/                           Orchestrator HTTP and WebSocket clients
+  lib/api/live-trip.ts               Two-way WhatsApp trip (itinerary, money, chat, documents)
   lib/session-snapshot.ts            Snapshot merging and browser event handling
   types/                             Dashboard, session, and service contracts
   public/images/                     Landing-page imagery
@@ -75,7 +76,9 @@ web/
 ## Notes
 
 The landing-page conversation is illustrative. The dashboard is connected to
-the Go backend’s real group planning workflow.
+the Go backend’s real group planning workflow: WhatsApp creates the trip,
+the session page follows search progress, and itinerary / money / chat stay
+in sync both ways.
 
 ## Live group dashboard
 
@@ -85,8 +88,8 @@ The three sibling repositories have distinct responsibilities:
 
 | Repository                  | Responsibility                                                                                                                                   |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `fare-frontend`             | Render group sessions, live browser previews, offers, planner progress, and the final itinerary.                                                 |
-| `fare-orchestrator-service` | Own the chat-driven trip workflow, start searches, select offers with Gemini, save dashboard snapshots, and broadcast group events.              |
+| `fare-frontend`             | Render group sessions, live browser previews, offers, planner progress, the WhatsApp itinerary, money, chat, and traveler documents. Choosing a saved fare or stay writes back through the orchestrator and is announced in the group. |
+| `fare-orchestrator-service` | Own the chat-driven trip workflow, start searches, select offers with Gemini, save dashboard snapshots, broadcast group events, and apply dashboard choices (flight, stay, budget, payer, documents) without the frontend starting a search. |
 | `travel-search-services`    | Run separate Python flight/hotel workers with Skyvern browsers, extract offers, save results, and produce browser frames and recording metadata. |
 
 ```text
@@ -121,6 +124,22 @@ Frontend ← group WebSocket ← Go orchestrator ← frames, progress, saved res
 
 Opening a dashboard, mounting a component, or reconnecting must never launch or
 resubmit a search. The frontend observes work initiated by the chat workflow.
+Picking a flight or stay, saving a budget, naming a payer, sending dashboard
+chat, or storing passport details are writes against the existing trip. They
+do not start Skyvern or call the Python bridges.
+
+`/dashboard` lists WhatsApp-created trips. `/dashboard/{groupId}` shows the
+shared itinerary, money, flights & stays, and chat on top, with live search
+sessions underneath. `/dashboard/{groupId}/{sessionId}` follows one session
+(browser preview when frames exist, saved offers, planner) and embeds the
+same WhatsApp plan at the bottom.
+
+This orchestrator maps the singleton WhatsApp trip into the session snapshot
+the frontend already understands (`GET /groups/{groupId}/sessions` and
+`GET /groups/{groupId}/events`). JPEG Skyvern frames still require the Python
+bridges and `FLIGHT_SERVICE_WS_URL` / `HOTEL_SERVICE_WS_URL` on a backend that
+forwards worker events. Saved offers and the itinerary still appear from the
+chat workflow without those bridges.
 
 ### Local streaming configuration
 
@@ -219,7 +238,8 @@ group endpoint; the loopback Python bridges belong on the orchestrator's host.
 | [session-loader.tsx](web/components/session/session-loader.tsx)                        | Loads the selected session through HTTP and group snapshots, then mounts its dashboard.                                                                            |
 | [use-session-events.ts](web/hooks/use-session-events.ts)                               | Subscribes by stable group/session IDs, merges authoritative snapshots, and applies live browser updates.                                                          |
 | [session-snapshot.ts](web/lib/session-snapshot.ts)                                     | Rejects older session revisions and retains a last frame across snapshot updates only when its browser session ID matches.                                         |
-| [session-dashboard.tsx](web/components/session/session-dashboard.tsx)                  | Shows agent tabs, search results/errors, planning tasks, activity, and the final itinerary.                                                                        |
+| [session-dashboard.tsx](web/components/session/session-dashboard.tsx)                  | Shows agent tabs, search results/errors, planning tasks, activity, the final itinerary, and the shared WhatsApp plan. |
+| [live-trip.tsx](web/components/dashboard/live-trip.tsx), [live-trip.ts](web/lib/api/live-trip.ts) | Poll the WhatsApp trip: itinerary, locked fares, split, chat, documents. Actions POST to `/dashboard/trips/{groupId}`. |
 | [live-browser.tsx](web/components/session/live-browser.tsx)                            | Renders JPEG data URLs and preview status, retaining the final frame after streaming ends.                                                                         |
 | [dashboard.ts](web/types/dashboard.ts), [travel-search.ts](web/types/travel-search.ts) | Define the dashboard envelope, snapshots, nested service events, and browser preview types.                                                                        |
 
@@ -234,6 +254,9 @@ flow. Follow `group-socket.ts` and the hooks above when changing live behavior.
 | `GET /groups/{groupId}/events`               | WebSocket; immediately sends `group.snapshot`. |
 | `GET /groups/{groupId}/sessions`             | Returns the group's saved session snapshots.   |
 | `GET /groups/{groupId}/sessions/{sessionId}` | Returns one session within that group.         |
+| `GET /dashboard/trips`                       | WhatsApp-created trips for the home list.      |
+| `GET /dashboard/trips/{groupId}`             | Itinerary, money, offers, people, chat.        |
+| `POST /dashboard/trips/{groupId}`            | Chat, pick fare/stay, budget, payer, documents. Never starts a search. |
 
 Dashboard events use `version: 1`, `type`, `groupId`, and `revision`; session
 events also carry `sessionId`. Normal workflow events include an authoritative
@@ -291,7 +314,8 @@ describe these changes as tested.
   verification unless the user explicitly requests them. Startup commands in
   this README do not override that rule.
 - Keep search initiation in the chat/orchestrator workflow. Frontend subscriptions
-  and reconnects must remain observational.
+  and reconnects must remain observational. `select_flight` / `select_hotel` only
+  lock a saved offer onto the trip and announce it in WhatsApp.
 - Keep credentials on the backend and preserve session, search, revision, and
   browser-session correlation when modifying event handling.
 
