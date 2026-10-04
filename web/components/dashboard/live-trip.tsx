@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { IconBrandWhatsapp, IconBuilding, IconChevronDown, IconMapPin, IconPlane, IconSend } from "@tabler/icons-react"
+import { IconBrandWhatsapp, IconBuilding, IconCheck, IconChevronDown, IconMapPin, IconPlane, IconSend } from "@tabler/icons-react"
 import { actOnTrip, getTrip, type TripView } from "@/lib/api/live-trip"
 import { getSessionSnapshot } from "@/lib/api/sessions"
 import type { SessionSnapshot } from "@/types/dashboard"
@@ -45,6 +45,44 @@ function moneyBreakdown(trip: TripView, quote: SessionSnapshot | null) {
   const travelGroup = firstPositive(trip.spend?.travel_group, flightEach * people + hotelGroup)
   const fromSearch = !(trip.spend?.flight_each > 0 || trip.spend?.hotel_group > 0) && (flightEach > 0 || hotelGroup > 0)
   return { flightEach, hotelGroup, hotelEach, travelEach, travelGroup, fromSearch }
+}
+
+function BookedPair({ flights, hotel, nights }: { flights: TripView["flights"]; hotel: TripView["hotels"][number] | undefined; nights: number }) {
+  const flight = flights[0]
+  return <section aria-label="Flight and stay on this trip" className="grid gap-4 md:grid-cols-2">
+    <article className="flex flex-col rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-card p-5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="grid size-11 place-items-center rounded-2xl bg-blue-600 text-white"><IconPlane className="size-5" /></span>
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide uppercase ${flight ? "bg-blue-600 text-white" : "bg-secondary text-muted-foreground"}`}>{flight && <IconCheck className="size-3.5" />}{flight ? "On the trip" : "Not chosen"}</span>
+      </div>
+      <p className="mt-5 text-xs font-medium tracking-widest text-blue-700 uppercase">Flight</p>
+      {flight ? <>
+        <h3 className="mt-1 text-2xl font-semibold tracking-tight">{flight.airline || "Flight"}</h3>
+        <p className="mt-2 text-sm">{flight.origin} → {flight.destination}</p>
+        {flight.summary && <p className="mt-2 text-sm leading-6 text-muted-foreground">{flight.summary}</p>}
+        <p className="mt-4 text-lg font-semibold">{cad(flight.price)}<span className="ml-1 text-sm font-normal text-muted-foreground">round trip each</span></p>
+        {flight.source && <p className="mt-1 text-xs text-muted-foreground">{travelSourceLabel(flight.source)}</p>}
+        <div className="mt-auto pt-4"><OfferLink url={flight.booking_url} label={flight.link_type === "search" ? "Search flights" : "View flight"} /></div>
+      </> : <p className="mt-2 text-sm text-muted-foreground">No flight is on the trip yet.</p>}
+    </article>
+    <article className="flex flex-col overflow-hidden rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-card">
+      {hotel?.image && <img src={hotel.image} alt="" className="h-36 w-full object-cover" />}
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex items-center justify-between gap-3">
+          <span className="grid size-11 place-items-center rounded-2xl bg-orange-600 text-white"><IconBuilding className="size-5" /></span>
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide uppercase ${hotel ? "bg-orange-600 text-white" : "bg-secondary text-muted-foreground"}`}>{hotel && <IconCheck className="size-3.5" />}{hotel ? "On the trip" : "Not chosen"}</span>
+        </div>
+        <p className="mt-5 text-xs font-medium tracking-widest text-orange-700 uppercase">Stay</p>
+        {hotel ? <>
+          <h3 className="mt-1 text-2xl font-semibold tracking-tight">{hotel.name}</h3>
+          <p className="mt-2 text-sm">{[hotel.city, nights ? `${nights} nights` : ""].filter(Boolean).join(" · ")}</p>
+          <p className="mt-4 text-lg font-semibold">{cad(hotel.total)}<span className="ml-1 text-sm font-normal text-muted-foreground">for the group</span></p>
+          <p className="mt-1 text-xs text-muted-foreground">{[hotel.nightly ? `${cad(hotel.nightly)} / night` : "", hotel.source === "booking_com" ? "Booking.com" : hotel.source === "airbnb" ? "Airbnb" : hotel.source, hotel.property_type].filter(Boolean).join(" · ")}</p>
+          <div className="mt-auto pt-4"><OfferLink url={hotel.booking_url || hotel.checkout_url || hotel.url} label="View stay" /></div>
+        </> : <p className="mt-2 text-sm text-muted-foreground">No stay is on the trip yet.</p>}
+      </div>
+    </article>
+  </section>
 }
 
 function alignOffers<T extends { offer_id: string }>(incoming: T[] | undefined, current: T[] | undefined) {
@@ -263,8 +301,8 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
     </>}
 
     {tab === "Flights & stays" && <div className="mt-6 space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Pick one fare and one stay. Each choice updates the shared trip.</p><button type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "chat", text: "show flight and hotel options on the dashboard" })} className="cursor-pointer rounded-full bg-secondary px-4 py-2 text-sm hover:bg-secondary/70 disabled:cursor-not-allowed disabled:opacity-50">Ask Fare for options</button></div>
-      <section className="rounded-2xl border border-blue-200 bg-blue-50/60 p-5">
+      {!embed && <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Pick one fare and one stay. Each choice updates the shared trip.</p><button type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "chat", text: "show flight and hotel options on the dashboard" })} className="cursor-pointer rounded-full bg-secondary px-4 py-2 text-sm hover:bg-secondary/70 disabled:cursor-not-allowed disabled:opacity-50">Ask Fare for options</button></div>}
+      {!embed && <><section className="rounded-2xl border border-blue-200 bg-blue-50/60 p-5">
         <h2 className="flex items-center gap-3 text-lg font-semibold"><span className="grid size-10 place-items-center rounded-xl bg-blue-600 text-white"><IconPlane className="size-5" /></span>Flights</h2>
         <p className="mt-2 text-xs text-muted-foreground">Round trip, per person. The outlined card is the fare on the trip now.</p>
         {(trip.flights ?? []).length === 0 && <p className="mt-4 text-sm text-muted-foreground">No fares yet.</p>}
@@ -279,7 +317,8 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
         <div className="bg-card p-4"><p className="text-xs uppercase tracking-wide text-muted-foreground">{hotel.selected ? "Chosen stay" : hotel.city}</p><h3 className="mt-1 font-semibold">{hotel.name}</h3>{hotel.source && <p className="mt-1 text-xs text-muted-foreground">{hotel.source === "booking_com" ? "Booking.com" : hotel.source === "airbnb" ? "Airbnb" : hotel.source}{hotel.property_type ? ` · ${hotel.property_type}` : ""}</p>}<p className="mt-2 text-sm">{cad(hotel.nightly)} / night · {cad(hotel.total)} group{hotel.rating != null ? ` · ${hotel.original_rating ?? hotel.rating} / ${hotel.original_rating_scale ?? 10}` : ""}</p>{hotel.price_note && <p className="mt-2 text-xs text-muted-foreground">{hotel.price_note}</p>}{hotel.selected && hotel.reason && <p className="mt-2 text-xs leading-5 text-muted-foreground">{hotel.reason}</p>}<div className="mt-4 flex flex-wrap gap-2"><button type="button" disabled={busy || !trip.editable || hotel.selected} onClick={() => run({ action: "select_hotel", offer_id: hotel.offer_id, name: hotel.name || "", city: hotel.city || "", price: String(hotel.total || 0), ...(hotel.nightly ? { price_per_night: String(hotel.nightly) } : {}), ...(hotel.source ? { source: hotel.source } : {}), ...((hotel.booking_url || hotel.checkout_url || hotel.url) ? { checkout_url: hotel.booking_url || hotel.checkout_url || hotel.url } : {}) })} className="cursor-pointer rounded-full bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50">{hotel.selected ? "On the trip" : "Use this stay"}</button><OfferLink url={hotel.booking_url || hotel.checkout_url || hotel.url} label="View stay" /></div></div>
       </article>)}
       </div>
-      </section>
+      </section></>}
+      <BookedPair flights={chosenFlights} hotel={chosenHotel} nights={trip.nights} />
     </div>}
 
     {tab === "Chat" && <section className="mt-6 flex h-[32rem] flex-col overflow-hidden rounded-2xl border border-border bg-card">
