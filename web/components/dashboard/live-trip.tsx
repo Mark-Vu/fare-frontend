@@ -36,7 +36,6 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
   const [actor, setActor] = useState("")
   const [budget, setBudget] = useState("")
   const [chat, setChat] = useState("")
-  const [traveler, setTraveler] = useState({ name: "", legal_name: "", date_of_birth: "", passport_number: "" })
 
   useEffect(() => {
     const saved = localStorage.getItem(`fare-actor:${groupId}`) || ""
@@ -104,7 +103,7 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
       </label>
     </div>
     {error && <p role="alert" className="mt-4 rounded-xl border border-border bg-card px-4 py-3 text-sm text-destructive">{error}</p>}
-    {!trip.editable && <p className="mt-4 rounded-xl border border-border bg-secondary/60 px-4 py-3 text-sm">This trip is booked. The plan is locked; chat still stays in sync with WhatsApp.</p>}
+    {!trip.editable && <p className="mt-4 rounded-xl border border-border bg-secondary/60 px-4 py-3 text-sm">This itinerary is read-only. Chat still stays in sync with WhatsApp.</p>}
 
     <div className="mt-6 flex gap-2 overflow-x-auto">
       {tabs.map(item => <button key={item} type="button" onClick={() => setTab(item)} className={`rounded-full px-4 py-2 text-sm ${tab === item ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>{item}</button>)}
@@ -137,12 +136,6 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
         {(trip.spend.food_per_day || trip.spend.food_trip) && <div className="mt-5 rounded-xl bg-secondary p-4 text-sm"><p className="font-medium">Food estimate</p><p className="mt-1 text-muted-foreground">{trip.spend.food_note}</p><p className="mt-2">{cad(trip.spend.food_per_day)} / day · {cad(trip.spend.food_trip)} for the trip, per person. Not booked.</p></div>}
       </div>
       <div className="space-y-4">
-        <div className="rounded-2xl border border-border bg-card p-6">
-          <h2 className="font-semibold">Who owes whom</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Card: {trip.payer_name || "not chosen"}</p>
-          <ul className="mt-4 space-y-2 text-sm">{(trip.owes ?? []).length ? trip.owes.map(row => <li key={row.from}>{row.from} owes {row.to} {cad(row.amount)}</li>) : <li className="text-muted-foreground">Pick who is paying to split the locked quote.</li>}</ul>
-          <div className="mt-4 flex flex-wrap gap-2">{names.map(name => <button key={name} type="button" disabled={busy} onClick={() => run({ action: "set_payer", name })} className={`rounded-full px-3 py-1 text-xs ${trip.payer_name === name ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>{name}</button>)}</div>
-        </div>
         <form className="rounded-2xl border border-border bg-card p-6" onSubmit={e => { e.preventDefault(); void run({ action: "set_budget", budget }) }}>
           <h2 className="font-semibold">Planning budget</h2>
           <p className="mt-1 text-sm text-muted-foreground">One number for the group, in CAD. It guides food and options. It does not change the locked fare.</p>
@@ -152,25 +145,13 @@ export function LiveTrip({ groupId, embed = false, sessionId }: { groupId: strin
     </section>}
 
     {tab === "Flights & stays" && <section className="mt-6 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Swap a fare or a stay anytime. Checkout links open with your dates already set, and you confirm the card so payment stays with you.</p><button type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "chat", text: "show flight and hotel options on the dashboard" })} className="rounded-full bg-secondary px-4 py-2 text-sm">Ask Fare for options</button></div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">Browse the flight and stay options for your itinerary.</p><button type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "chat", text: "show flight and hotel options on the dashboard" })} className="rounded-full bg-secondary px-4 py-2 text-sm">Ask Fare for options</button></div>
       <div className="grid gap-3 md:grid-cols-3">{(trip.flights ?? []).map((flight, i) => <button key={`${flight.offer_id || flight.summary}-${i}`} type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "select_flight", offer_id: flight.offer_id })} className={`rounded-2xl border p-4 text-left ${flight.selected ? "border-primary bg-secondary" : "border-border bg-card"}`}><p className="text-xs uppercase tracking-wide text-muted-foreground">{flight.selected ? "Chosen" : "Fare"}</p><p className="mt-2 font-semibold">{flight.airline || "Flight"}</p>{flight.source && <p className="mt-1 text-xs text-muted-foreground">{travelSourceLabel(flight.source)}</p>}<p className="text-sm">{flight.origin} → {flight.destination}</p><p className="mt-2 text-sm text-muted-foreground">{flight.summary}</p><p className="mt-3 font-medium">{cad(flight.price)} round trip each</p>{flight.selected && flight.reason && <p className="mt-2 text-xs leading-5 text-muted-foreground">{flight.reason}</p>}</button>)}</div>
       <div className="grid gap-4 md:grid-cols-3">{(trip.hotels ?? []).map((hotel, i) => <article key={`${hotel.offer_id || hotel.name}-${i}`} className={`overflow-hidden rounded-2xl border ${hotel.selected ? "border-primary" : "border-border"}`}>
         {hotel.image && <img src={hotel.image} alt="" className="h-36 w-full object-cover" />}
-        <div className="bg-card p-4"><p className="text-xs uppercase tracking-wide text-muted-foreground">{hotel.selected ? "Chosen stay" : hotel.city}</p><h3 className="mt-1 font-semibold">{hotel.name}</h3>{hotel.source && <p className="mt-1 text-xs text-muted-foreground">{hotel.source === "booking_com" ? "Booking.com" : hotel.source === "airbnb" ? "Airbnb" : hotel.source}{hotel.property_type ? ` · ${hotel.property_type}` : ""}</p>}<p className="mt-2 text-sm">{cad(hotel.nightly)} / night · {cad(hotel.total)} group{hotel.rating != null ? ` · ${hotel.original_rating ?? hotel.rating} / ${hotel.original_rating_scale ?? 10}` : ""}</p>{hotel.price_note && <p className="mt-2 text-xs text-muted-foreground">{hotel.price_note}</p>}{hotel.selected && hotel.reason && <p className="mt-2 text-xs leading-5 text-muted-foreground">{hotel.reason}</p>}<div className="mt-4 flex flex-wrap gap-2"><button type="button" disabled={busy || !trip.editable} onClick={() => run({ action: "select_hotel", offer_id: hotel.offer_id })} className="rounded-full bg-primary px-4 py-2 text-xs text-primary-foreground">Use this stay</button>{hotel.checkout_url && <a href={hotel.checkout_url} target="_blank" rel="noreferrer" className="rounded-full border border-border px-4 py-2 text-xs">Continue to checkout</a>}</div></div>
+        <div className="bg-card p-4"><p className="text-xs uppercase tracking-wide text-muted-foreground">{hotel.selected ? "Chosen stay" : hotel.city}</p><h3 className="mt-1 font-semibold">{hotel.name}</h3>{hotel.source && <p className="mt-1 text-xs text-muted-foreground">{hotel.source === "booking_com" ? "Booking.com" : hotel.source === "airbnb" ? "Airbnb" : hotel.source}{hotel.property_type ? ` · ${hotel.property_type}` : ""}</p>}<p className="mt-2 text-sm">{cad(hotel.nightly)} / night · {cad(hotel.total)} group{hotel.rating != null ? ` · ${hotel.original_rating ?? hotel.rating} / ${hotel.original_rating_scale ?? 10}` : ""}</p>{hotel.price_note && <p className="mt-2 text-xs text-muted-foreground">{hotel.price_note}</p>}{hotel.selected && hotel.reason && <p className="mt-2 text-xs leading-5 text-muted-foreground">{hotel.reason}</p>}<div className="mt-4 flex flex-wrap gap-2">{hotel.checkout_url && <a href={hotel.checkout_url} target="_blank" rel="noreferrer" className="rounded-full border border-border px-4 py-2 text-xs">View stay</a>}</div></div>
       </article>)}
       </div>
-      <form className="rounded-2xl border border-border bg-card p-6" onSubmit={e => { e.preventDefault(); void run({ action: "save_traveler", name: traveler.name, legal_name: traveler.legal_name, date_of_birth: traveler.date_of_birth, passport_number: traveler.passport_number }).then(() => setTraveler(t => ({ ...t, passport_number: "" }))) }}>
-        <h2 className="font-semibold">Travel documents</h2>
-        <p className="mt-1 max-w-xl text-sm text-muted-foreground">Legal name, date of birth, and passport stay on the trip for booking. WhatsApp only hears that they were saved — never the number.</p>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <select className="rounded-xl border border-border bg-background px-3 py-2 text-sm" value={traveler.name} onChange={e => setTraveler({ ...traveler, name: e.target.value })}><option value="">Traveler</option>{names.map(name => <option key={name}>{name}</option>)}</select>
-          <input placeholder="Legal name" className="rounded-xl border border-border bg-background px-3 py-2 text-sm" value={traveler.legal_name} onChange={e => setTraveler({ ...traveler, legal_name: e.target.value })} />
-          <input type="date" className="rounded-xl border border-border bg-background px-3 py-2 text-sm" value={traveler.date_of_birth} onChange={e => setTraveler({ ...traveler, date_of_birth: e.target.value })} />
-          <input placeholder="Passport number" autoComplete="off" className="rounded-xl border border-border bg-background px-3 py-2 text-sm" value={traveler.passport_number} onChange={e => setTraveler({ ...traveler, passport_number: e.target.value })} />
-        </div>
-        <ul className="mt-4 space-y-1 text-xs text-muted-foreground">{(trip.people ?? []).map(p => <li key={p.name}>{p.name}: {p.legal_name || "no legal name"}{p.has_passport ? ` · passport ••••${p.passport_last4}` : " · no passport yet"}{p.date_of_birth ? ` · ${p.date_of_birth}` : ""}</li>)}</ul>
-        <button disabled={busy} className="mt-4 rounded-full bg-primary px-4 py-2 text-sm text-primary-foreground">Save documents</button>
-      </form>
     </section>}
 
     {tab === "Chat" && <section className="mt-6 flex h-[32rem] flex-col overflow-hidden rounded-2xl border border-border bg-card">

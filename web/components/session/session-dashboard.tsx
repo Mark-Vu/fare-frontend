@@ -55,7 +55,7 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
   const plannerStatus: StepStatus = state.planning === "pending" && !failed && !completed && (searchesDone || state.status === "planning") ? "running" : state.planning
   const plannerStarted = plannerStatus !== "pending" || state.status === "planning" || completed
   const readyStatus: StepStatus = completed ? "completed" : failed && !flightChoice ? "failed" : plannerStarted ? "running" : "pending"
-  const readyDescription = completed ? "Your fare, stay, and days are together. Booking links open with your dates already set — you confirm the card." : failed && !flightChoice ? "Planning was interrupted. Check the latest update before trying again." : state.plan ? "Finalizing your itinerary and saving your complete trip plan." : readyStatus === "running" ? "Preparing your complete trip plan as your daily schedule comes together." : "Your complete plan will appear here, with each day mapped out."
+  const readyDescription = completed ? "Your flights, stay, and day-by-day itinerary are ready." : failed && !flightChoice ? "Planning was interrupted. Check the latest update before trying again." : state.plan ? "Finalizing your itinerary and saving your complete trip plan." : readyStatus === "running" ? "Preparing your complete trip plan as your daily schedule comes together." : "Your complete plan will appear here, with each day mapped out."
   const searchDescription = searchesDone
     ? "Your agents have finished the research. Flight and hotel options are ready."
     : flightChoice
@@ -120,7 +120,7 @@ export function SessionDashboard({ snapshot }: { snapshot: SessionSnapshot }) {
             <p role={browserStatus === "failed" ? "alert" : "status"} className={`text-xs leading-5 ${browserStatus === "failed" ? "text-destructive" : "text-muted-foreground"}`}>{agent === "flight" ? state.flightMessage : state.hotelMessage}</p>
             {flightChoice && <div className="flex flex-wrap items-center gap-3"><Button size="sm" disabled={retrying || skipping} onClick={() => void retryFlights()}>{retrying ? "Retrying flights…" : "Retry flight search"}</Button><Button size="sm" variant="outline" disabled={skipping || retrying || state.hotel !== "completed"} onClick={() => void skipFlights()}>{skipping ? "Skipping flights…" : "Skip flights"}</Button>{retryError && <p role="alert" className="text-xs text-destructive">{retryError}</p>}</div>}
             {state.flights.length > 0 && <FlightResults flights={state.flights} groupId={session.groupId} />}
-            {state.hotels.length > 0 && <HotelResults hotels={state.hotels} groupId={session.groupId} />}
+            {state.hotels.length > 0 && <HotelResults hotels={state.hotels} />}
           </div>
         </details>
       </FlowStep>
